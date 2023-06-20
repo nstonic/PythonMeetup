@@ -8,34 +8,31 @@ def answer_to_user(
         context,
         text,
         keyboard=None,
-        add_back_button: bool = True,
-        parse_mode: str = 'HTML',
-        edit_current_message: bool = True
+        add_back_button=True,
+        parse_mode=None,
+        delete_current_message=True
 ):
+    """
+    Функция для ответа пользователю. Рекомендуется все сообщения отправлять через нее
+    :param update: Update
+    :param context: Context
+    :param text: Текст сообщения
+    :param keyboard: Список кнопок Inline клавиатуры
+    :param add_back_button: Если True, то к клавиатуре автоматически добавится кнопка "Назад" с callback_data="back"
+    :param parse_mode: Режим разметки текста сообщения Markdown, HTML или None
+    :param delete_current_message: Если True, то перед отправкой нового сообщения удалится старое
+    """
+
     if add_back_button:
         keyboard.append(
             [InlineKeyboardButton('Назад', callback_data='back')]
         )
-
-    if edit_current_message:
-        try:
-            message = context.bot.edit_message_text(
+    if delete_current_message:
+        with suppress(TelegramError):
+            context.bot.delete_message(
                 chat_id=update.effective_chat.id,
-                message_id=update.effective_message.message_id,
-                text=text,
-                reply_markup=InlineKeyboardMarkup(keyboard),
-                parse_mode=parse_mode
+                message_id=update.effective_message.message_id
             )
-        except TelegramError:
-            pass
-        else:
-            return message
-
-    with suppress(TelegramError):
-        context.bot.delete_message(
-            chat_id=update.effective_chat.id,
-            message_id=update.effective_message.message_id
-        )
     context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=text,
@@ -105,7 +102,8 @@ def show_event(update, context, event_id):
         update,
         context,
         text=f'<b>{event_title}</b>\n\n{event_text}',
-        keyboard=keyboard
+        keyboard=keyboard,
+        parse_mode='HTML'
     )
     return 'HANDLE_EVENT_MENU'
 

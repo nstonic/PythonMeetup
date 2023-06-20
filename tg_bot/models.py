@@ -60,13 +60,11 @@ class Event(models.Model):
         User,
         verbose_name='Участники мероприятия',
         related_name='events',
-        # on_delete=models.PROTECT,
         )
     organizer = models.ManyToManyField(
         User,
         verbose_name='Организаторы',
         related_name='org_events',
-        # on_delete=models.PROTECT,
         )
     image = models.ImageField(
         verbose_name='Фото/логотип',
@@ -76,6 +74,13 @@ class Event(models.Model):
 
     def __str__(self):
         return f'{self.started_at} - {self.title}'
+    
+    def get_organizer(self):
+        set_organizers = self.organizer.get_queryset()
+        organizers = ''
+        for organizer in set_organizers:
+            organizers += ', ' + organizer.fullname
+        return organizers.lstrip(', ')
 
     class Meta:
         verbose_name = 'Мероприятие'
@@ -97,7 +102,7 @@ class Speech(models.Model):
         blank=True,
         null=True,
         )
-    finished_at = models.DateField(
+    finished_at = models.DateTimeField(
         verbose_name='Окончание доклада',
         blank=True,
         null=True,

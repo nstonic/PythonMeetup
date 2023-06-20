@@ -33,8 +33,7 @@ def handle_main_menu(update, context):
         query,
         partial(show_event, event_id=query)
     )
-    print(action)
-    action(update, context)
+    return action(update, context)
 
 
 def handle_event_menu(update, context):
@@ -42,7 +41,7 @@ def handle_event_menu(update, context):
     event_id = context.user_data['current_event']
     actions = {
         'speech_list': partial(show_speech_list, event_id=event_id),
-        'main_menu': show_start_menu,
+        'back': show_start_menu,
         'register': partial(register, event_id=event_id),
         'ask': ask,
         'meet': meet,
@@ -50,7 +49,23 @@ def handle_event_menu(update, context):
         'donate': partial(donate, event_id=event_id)
     }
     action = actions.get(query)
-    action(update, context)
+    return action(update, context)
+
+
+def handle_future_events(update, context):
+    query = update.callback_query.data
+    if query == 'back':
+        return show_start_menu(update, context)
+    else:
+        event_id = context.user_data['current_event']
+        return show_event(update, context, event_id)
+
+
+def handle_speech_list_menu(update, context):
+    query = update.callback_query.data
+    event_id = context.user_data.get('current_event')
+    if query == 'back':
+        return show_event(update, context, event_id)
 
 
 def handle_users_reply(update, context):
@@ -68,16 +83,15 @@ def handle_users_reply(update, context):
     state_functions = {
         'START': show_start_menu,
         'HANDLE_MAIN_MENU': handle_main_menu,
-        'HANDLE_EVENT_MENU': handle_event_menu
+        'HANDLE_EVENT_MENU': handle_event_menu,
+        'HANDLE_FUTURE_EVENTS': handle_future_events,
+        'HANDLE_SPEECH_LIST_MENU': handle_speech_list_menu
     }
-
     state_handler = state_functions.get(user_state, show_start_menu)
-
     next_state = state_handler(
         update=update,
         context=context
     )
-
     context.user_data['state'] = next_state
 
 

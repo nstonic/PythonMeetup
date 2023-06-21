@@ -3,7 +3,7 @@ from django.db import models
 
 class User(models.Model):
     telegram_id = models.IntegerField(
-        primary_key=True,
+        verbose_name='Идентификатор в телеграмме',
         )
     nickname = models.CharField(
         max_length=50,
@@ -12,6 +12,34 @@ class User(models.Model):
     fullname = models.CharField(
         max_length=200,
         verbose_name='Полное имя',
+        blank=True,
+        null=True,
+        )
+    age = models.PositiveIntegerField(
+        verbose_name='Возраст',
+        blank=True,
+        null=True,
+        )
+    activity = models.TextField(
+        verbose_name='Род деятельности',
+        blank=True,
+        null=True,
+        )
+    stack = models.CharField(
+        max_length=300,
+        verbose_name='Стек',
+        blank=True,
+        null=True,
+        )
+    hobby = models.CharField(
+        max_length=300,
+        verbose_name='Хобби',
+        blank=True,
+        null=True,
+        )
+    purpose = models.CharField(
+        max_length=300,
+        verbose_name='Цель знакомства',
         blank=True,
         null=True,
         )
@@ -32,13 +60,13 @@ class User(models.Model):
         default=False,
         )
 
-    def __str__(self):
-        adm = 'АДМИНИСТРАТОР' if self.is_admin else ''
-        return f'{adm} {self.nickname} - {self.fullname}'
-
     class Meta:
         verbose_name = 'Участник'
         verbose_name_plural = 'Участники'
+
+    def __str__(self):
+        adm = 'АДМИНИСТРАТОР' if self.is_admin else ''
+        return f'{adm} {self.nickname} - {self.fullname}'
 
 
 class Event(models.Model):
@@ -56,12 +84,17 @@ class Event(models.Model):
         blank=True,
         null=True,
         )
+    finished_at = models.DateTimeField(
+        verbose_name='Дата и время окончания',
+        blank=True,
+        null=True,
+        )
     members = models.ManyToManyField(
         User,
         verbose_name='Участники мероприятия',
         related_name='events',
         )
-    organizer = models.ManyToManyField(
+    organizers = models.ManyToManyField(
         User,
         verbose_name='Организаторы',
         related_name='org_events',
@@ -76,7 +109,7 @@ class Event(models.Model):
         return f'{self.started_at} - {self.title}'
     
     def get_organizer(self):
-        set_organizers = self.organizer.get_queryset()
+        set_organizers = self.organizers.get_queryset()
         organizers = ''
         for organizer in set_organizers:
             organizers += ', ' + organizer.fullname

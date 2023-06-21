@@ -1,13 +1,28 @@
 [
     {
         "model": "tg_bot.user",
-        "telegram_id": 1,
+        "pk": 1,
         "fields": {
+            "telegram_id": 600023129,
             "nickname": "ilsi",
             "fullname": "Фрося Бурлакова",
+            "age": 47,
             "speciality": "",
             "registred_at": "2023-06-20 23:00:00:00",
             "is_admin": "True"
+        }
+    },
+    {
+        "model": "tg_bot.user",
+        "pk": 2,
+        "fields": {
+            "telegram_id": 600023130,
+            "nickname": "just_tsar",
+            "fullname": "Пушкин Александр Сергеевич",
+            "age": 224,
+            "speciality": "",
+            "registred_at": "2023-06-21 09:00:00:00",
+            "is_admin": "False"
         }
     },
     {
@@ -17,8 +32,9 @@
             "title": "Направления развития общества Альфа Центавра",
             "description": "Земля в иллюминаторе видна",
             "started_at": "2023-06-26 15:00:00:00",
-            "members": [1],
-            "organizer": [1]
+            "finished_at": "2023-06-26 17:20:00:00",
+            "members": [1,2],
+            "organizers": [1]
         }
     },
     {
@@ -26,11 +42,11 @@
         "pk": 1,
         "fields": {
             "title": "Есть ли жизнь на Марсе?",
-            "description": "Науке в принципе не известно, а возможно и не интересно",
+            "description": "Науке в принципе не известно, а возможно, и не интересно",
             "started_at": "2023-06-26 15:00:00:00",
             "finished_at": "2023-06-26 15:20:00:00",
             "event": 1,
-            "speaker": 1
+            "speaker": 2
         }
     }
 ]

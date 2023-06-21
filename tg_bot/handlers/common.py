@@ -1,13 +1,14 @@
 from contextlib import suppress
 
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton, TelegramError
+from telegram.ext import CallbackContext
 
 
 def answer_to_user(
         update,
         context,
         text,
-        keyboard=[],
+        keyboard: list[list[InlineKeyboardButton]] = None,
         add_back_button=True,
         parse_mode=None,
         edit_current_message=True
@@ -23,10 +24,12 @@ def answer_to_user(
     :param edit_current_message: Метод отправки сообщения. Если True, то новое сообщение отправляется как
     редактирование старого. Если False, то старое удаляется и присылается новое
     """
+    if not keyboard:
+        keyboard = []
 
     if add_back_button:
         keyboard.append(
-            [InlineKeyboardButton('Назад', callback_data='back')]
+            [InlineKeyboardButton('< Назад', callback_data='back')]
         )
     if edit_current_message:
         try:
@@ -56,6 +59,7 @@ def answer_to_user(
 
 
 def show_start_menu(update, context):
+    context.user_data['current_event'] = None
     user_id = update.effective_chat.id
     event_id = 1  # TODO Ищем мероприятие, которое сейчас проходит. Если нет, то ближайшее, которое ожидается
     text = 'Добро пожаловать в бот PythonMeetup'
@@ -122,7 +126,8 @@ def show_event(update, context, event_id):
     return 'HANDLE_EVENT_MENU'
 
 
-def show_speech_list(update, context, event_id):
+def show_speech_list(update, context):
+    event_id = context.user_data.get('current_event')
     speech_list = []  # TODO получаем данные о выступлениях на данном мероприятии
     text = '\n'.join(speech_list) or 'Еще не заявлено ни одного докладчика'
     answer_to_user(
@@ -145,10 +150,6 @@ def meet(update, context):
     pass
 
 
-def edit(update, context, event_id):
-    pass
-
-
 def donate(update, context, event_id):
     pass
 
@@ -158,7 +159,7 @@ def show_future_events(update, context):
     keyboard = []
     if events:
         text = 'Вот какие мероприятия пройдут в скором времени'
-        keyboard.append([
+        keyboard.extend([
             [InlineKeyboardButton(event.title, callback_data=event.pk)]
             for event in events
         ])
@@ -174,5 +175,60 @@ def show_future_events(update, context):
     return 'HANDLE_FUTURE_EVENTS'
 
 
-def create_event(update, context):
-    pass
+def ask_for_event_title(update, context):
+    text = 'Пришлите названия для Вашего мероприятия'
+    answer_to_user(
+        update,
+        context,
+        text
+    )
+    return 'HANDLE_EVENT_TITLE'
+
+
+def ask_for_event_text(update, context):
+    text = 'Пришлите описание Вашего мероприятия'
+    answer_to_user(
+        update,
+        context,
+        text
+    )
+    return 'HANDLE_EVENT_TEXT'
+
+
+def delete_event(update, context: CallbackContext, event_id):
+    # TODO Удаляем мероприятие
+    context.bot.answerCallbackQuery(
+        update.callback_query.id,
+        'Мероприятие удалено'
+    )
+    return show_start_menu(update, context)
+
+
+def edit_event(update, context, title=None, text=None):
+    if title:
+        if event_id := context.user_data.get('current_event'):
+            pass  # TODO Меняем название мероприятия
+        else:
+            event_id: int  # TODO Создаём в базе мероприятие. Пока только с названием. Без других данных
+            context.user_data['current_event'] = event_id
+    if text:
+        event_id = context.user_data['current_event']
+        context.user_data['current_event'] = event_id
+        # TODO Меняем описание мероприятия
+
+    keyboard = [
+        [InlineKeyboardButton('Изменить название', callback_data='title')],
+        [InlineKeyboardButton('Изменить описание', callback_data='text')],
+        [InlineKeyboardButton('Удалить', callback_data='delete')]
+    ]
+    text = '<b>Название мероприятия</b>\n\n'\
+           'Здесь вы можете изменить название и описание мероприятия.' \
+           'Для более подробного редактирования мероприятия используйте <a href="127.0.0.1:8000">админ панель</a>' # TODO ссылка на админку
+    answer_to_user(
+        update,
+        context,
+        text,
+        keyboard,
+        parse_mode='HTML'
+    )
+    return 'HANDLE_EDIT_EVENT'

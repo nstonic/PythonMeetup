@@ -2,15 +2,17 @@ from functools import partial
 
 from .common import (
     show_future_events,
-    create_event,
+    edit_event,
     show_event,
     show_speech_list,
     show_start_menu,
     register,
     ask,
     meet,
-    edit,
-    donate
+    donate,
+    ask_for_event_title,
+    ask_for_event_text,
+    delete_event
 )
 
 
@@ -18,7 +20,7 @@ def handle_main_menu(update, context):
     query = update.callback_query.data
     actions = {
         'future_events': show_future_events,
-        'create_event': create_event
+        'create_event': ask_for_event_title
     }
     action = actions.get(
         query,
@@ -36,7 +38,7 @@ def handle_event_menu(update, context):
         'register': partial(register, event_id=event_id),
         'ask': ask,
         'meet': meet,
-        'edit': partial(edit, event_id=event_id),
+        'edit': edit_event,
         'donate': partial(donate, event_id=event_id)
     }
     action = actions.get(query)
@@ -59,6 +61,36 @@ def handle_speech_list_menu(update, context):
         return show_event(update, context, event_id)
 
 
+def handle_edit_event(update, context):
+    query = update.callback_query.data
+    event_id = context.user_data.get('current_event')
+    actions = {
+        'title': ask_for_event_title,
+        'text': ask_for_event_text,
+        'delete': partial(delete_event, event_id=event_id)
+    }
+    action = actions.get(query)
+    return action(update, context)
+
+
+def handle_event_title(update, context):
+    if update.message:
+        title = update.message.text
+        return edit_event(update, context, title=title)
+
+    if context.user_data.get('current_event'):
+        return edit_event(update, context)
+    else:
+        return show_start_menu(update, context)
+
+
+def handle_event_text(update, context):
+    if update.message:
+        text = update.message.text
+        return edit_event(update, context, text=text)
+    return edit_event(update, context)
+
+
 def handle_users_reply(update, context):
     if update.message:
         user_reply = update.message.text
@@ -76,7 +108,10 @@ def handle_users_reply(update, context):
         'HANDLE_MAIN_MENU': handle_main_menu,
         'HANDLE_EVENT_MENU': handle_event_menu,
         'HANDLE_FUTURE_EVENTS': handle_future_events,
-        'HANDLE_SPEECH_LIST_MENU': handle_speech_list_menu
+        'HANDLE_SPEECH_LIST_MENU': handle_speech_list_menu,
+        'HANDLE_EDIT_EVENT': handle_edit_event,
+        'HANDLE_EVENT_TITLE': handle_event_title,
+        'HANDLE_EVENT_TEXT': handle_event_text
     }
     state_handler = state_functions.get(user_state, show_start_menu)
     next_state = state_handler(

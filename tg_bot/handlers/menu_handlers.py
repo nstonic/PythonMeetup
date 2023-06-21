@@ -1,5 +1,7 @@
 from functools import partial
 
+from telegram import Update
+
 from .common import (
     show_future_events,
     edit_event,
@@ -26,7 +28,8 @@ def handle_main_menu(update, context):
         query,
         partial(show_event, event_id=query)
     )
-    return action(update, context)
+    if action:
+        return action(update, context)
 
 
 def handle_event_menu(update, context):
@@ -41,8 +44,8 @@ def handle_event_menu(update, context):
         'edit': edit_event,
         'donate': partial(donate, event_id=event_id)
     }
-    action = actions.get(query)
-    return action(update, context)
+    if action := actions.get(query):
+        return action(update, context)
 
 
 def handle_future_events(update, context):
@@ -64,13 +67,19 @@ def handle_speech_list_menu(update, context):
 def handle_edit_event(update, context):
     query = update.callback_query.data
     event_id = context.user_data.get('current_event')
+    if query == 'back':
+        if event_id:
+            return show_event(update, context, event_id)
+        else:
+            return show_start_menu(update, context)
+
     actions = {
         'title': ask_for_event_title,
         'text': ask_for_event_text,
         'delete': partial(delete_event, event_id=event_id)
     }
-    action = actions.get(query)
-    return action(update, context)
+    if action := actions.get(query):
+        return action(update, context)
 
 
 def handle_event_title(update, context):

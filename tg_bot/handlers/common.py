@@ -50,7 +50,7 @@ def answer_to_user(
             chat_id=update.effective_chat.id,
             message_id=update.effective_message.message_id
         )
-    context.bot.send_message(
+    return context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=text,
         reply_markup=InlineKeyboardMarkup(keyboard),
@@ -126,8 +126,7 @@ def show_event(update, context, event_id):
     return 'HANDLE_EVENT_MENU'
 
 
-def show_speech_list(update, context):
-    event_id = context.user_data.get('current_event')
+def show_speech_list(update, context, event_id):
     speech_list = []  # TODO получаем данные о выступлениях на данном мероприятии
     text = '\n'.join(speech_list) or 'Еще не заявлено ни одного докладчика'
     answer_to_user(
@@ -177,21 +176,23 @@ def show_future_events(update, context):
 
 def ask_for_event_title(update, context):
     text = 'Пришлите названия для Вашего мероприятия'
-    answer_to_user(
+    message = answer_to_user(
         update,
         context,
         text
     )
+    context.user_data['msg_to_delete'] = message.message_id
     return 'HANDLE_EVENT_TITLE'
 
 
 def ask_for_event_text(update, context):
     text = 'Пришлите описание Вашего мероприятия'
-    answer_to_user(
+    message = answer_to_user(
         update,
         context,
         text
     )
+    context.user_data['msg_to_delete'] = message.message_id
     return 'HANDLE_EVENT_TEXT'
 
 
@@ -211,9 +212,9 @@ def edit_event(update, context, title=None, text=None):
         else:
             event_id: int  # TODO Создаём в базе мероприятие. Пока только с названием. Без других данных
             context.user_data['current_event'] = event_id
+
     if text:
         event_id = context.user_data['current_event']
-        context.user_data['current_event'] = event_id
         # TODO Меняем описание мероприятия
 
     keyboard = [
@@ -221,9 +222,15 @@ def edit_event(update, context, title=None, text=None):
         [InlineKeyboardButton('Изменить описание', callback_data='text')],
         [InlineKeyboardButton('Удалить', callback_data='delete')]
     ]
-    text = '<b>Название мероприятия</b>\n\n'\
-           'Здесь вы можете изменить название и описание мероприятия.' \
-           'Для более подробного редактирования мероприятия используйте <a href="127.0.0.1:8000">админ панель</a>' # TODO ссылка на админку
+    text = '<b>Название мероприятия</b>\n\n' \
+           'Здесь вы можете изменить название и описание мероприятия. ' \
+           'Для более подробного редактирования используйте <a href="127.0.0.1:8000">админ панель</a>'  # TODO ссылка на админку
+
+    if msg_to_delete := context.user_data.pop('msg_to_delete'):
+        context.bot.delete_message(
+            chat_id=update.effective_chat.id,
+            message_id=msg_to_delete
+        )
     answer_to_user(
         update,
         context,

@@ -23,7 +23,7 @@ class ParticipantInlaine(admin.TabularInline):
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
     list_display = ('title', 'started_at', 'get_organizer')
-    fields = ('title', 'description', 'started_at')
+    fields = ('title', 'description', 'started_at', 'finished_at')
     inlines = [OrganizerInline, ParticipantInlaine]
 
 

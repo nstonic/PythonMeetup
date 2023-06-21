@@ -1,0 +1,36 @@
+[
+    {
+        "model": "tg_bot.user",
+        "telegram_id": 1,
+        "fields": {
+            "nickname": "ilsi",
+            "fullname": "Фрося Бурлакова",
+            "speciality": "",
+            "registred_at": "2023-06-20 23:00:00:00",
+            "is_admin": "True"
+        }
+    },
+    {
+        "model": "tg_bot.event",
+        "pk": 1,
+        "fields": {
+            "title": "Направления развития общества Альфа Центавра",
+            "description": "Земля в иллюминаторе видна",
+            "started_at": "2023-06-26 15:00:00:00",
+            "members": [1],
+            "organizer": [1]
+        }
+    },
+    {
+        "model": "tg_bot.speech",
+        "pk": 1,
+        "fields": {
+            "title": "Есть ли жизнь на Марсе?",
+            "description": "Науке в принципе не известно, а возможно и не интересно",
+            "started_at": "2023-06-26 15:00:00:00",
+            "finished_at": "2023-06-26 15:20:00:00",
+            "event": 1,
+            "speaker": 1
+        }
+    }
+]

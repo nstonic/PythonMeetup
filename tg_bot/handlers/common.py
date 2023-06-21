@@ -10,7 +10,7 @@ def answer_to_user(
         keyboard=[],
         add_back_button=True,
         parse_mode=None,
-        delete_current_message=True
+        edit_current_message=True
 ):
     """
     Функция для ответа пользователю. Рекомендуется все сообщения отправлять через нее
@@ -20,19 +20,33 @@ def answer_to_user(
     :param keyboard: Список кнопок Inline клавиатуры
     :param add_back_button: Если True, то к клавиатуре автоматически добавится кнопка "Назад" с callback_data="back"
     :param parse_mode: Режим разметки текста сообщения Markdown, HTML или None
-    :param delete_current_message: Если True, то перед отправкой нового сообщения удалится старое
+    :param edit_current_message: Метод отправки сообщения. Если True, то новое сообщение отправляется как
+    редактирование старого. Если False, то старое удаляется и присылается новое
     """
 
     if add_back_button:
         keyboard.append(
             [InlineKeyboardButton('Назад', callback_data='back')]
         )
-    if delete_current_message:
-        with suppress(TelegramError):
-            context.bot.delete_message(
+    if edit_current_message:
+        try:
+            message = context.bot.edit_message_text(
                 chat_id=update.effective_chat.id,
-                message_id=update.effective_message.message_id
+                message_id=update.effective_message.message_id,
+                text=text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode=parse_mode
             )
+        except TelegramError:
+            pass
+        else:
+            return message
+
+    with suppress(TelegramError):
+        context.bot.delete_message(
+            chat_id=update.effective_chat.id,
+            message_id=update.effective_message.message_id
+        )
     context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=text,
@@ -110,10 +124,11 @@ def show_event(update, context, event_id):
 
 def show_speech_list(update, context, event_id):
     speech_list = []  # TODO получаем данные о выступлениях на данном мероприятии
+    text = '\n'.join(speech_list) or 'Еще не заявлено ни одного докладчика'
     answer_to_user(
         update,
         context,
-        text='\n'.join(speech_list)
+        text=text
     )
     return 'HANDLE_SPEECH_LIST_MENU'
 
@@ -140,13 +155,13 @@ def donate(update, context, event_id):
 
 def show_future_events(update, context):
     events = []  # TODO получаем список грядущих мероприятий
-    keyboard = None
+    keyboard = []
     if events:
         text = 'Вот какие мероприятия пройдут в скором времени'
-        keyboard = [
+        keyboard.append([
             [InlineKeyboardButton(event.title, callback_data=event.pk)]
             for event in events
-        ]
+        ])
     else:
         text = 'К сожалению в ближайшее время мероприятий не ожидается'
 

@@ -1,20 +1,11 @@
 from functools import partial
 
-from environs import Env
-from telegram.ext import (
-    Updater,
-    CallbackQueryHandler,
-    MessageHandler,
-    CommandHandler,
-    Filters
-)
-
-from bot_lib import (
+from .common import (
     show_future_events,
-    show_start_menu,
     create_event,
     show_event,
     show_speech_list,
+    show_start_menu,
     register,
     ask,
     meet,
@@ -93,19 +84,3 @@ def handle_users_reply(update, context):
         context=context
     )
     context.user_data['state'] = next_state
-
-
-def main():
-    env = Env()
-    env.read_env()
-    token = env('TG_TOKEN')
-    updater = Updater(token)
-    dispatcher = updater.dispatcher
-    dispatcher.add_handler(CallbackQueryHandler(handle_users_reply))
-    dispatcher.add_handler(MessageHandler(Filters.text, handle_users_reply))
-    dispatcher.add_handler(CommandHandler('start', handle_users_reply))
-    updater.start_polling()
-
-
-if __name__ == '__main__':
-    main()

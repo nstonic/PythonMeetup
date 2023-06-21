@@ -7,7 +7,7 @@ def answer_to_user(
         update,
         context,
         text,
-        keyboard=None,
+        keyboard=[],
         add_back_button=True,
         parse_mode=None,
         delete_current_message=True

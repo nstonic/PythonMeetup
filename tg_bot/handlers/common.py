@@ -7,7 +7,7 @@ def answer_to_user(
         update,
         context,
         text,
-        keyboard=[],
+        keyboard: list[list[InlineKeyboardButton]],
         add_back_button=True,
         parse_mode=None,
         edit_current_message=True

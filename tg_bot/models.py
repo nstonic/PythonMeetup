@@ -93,8 +93,6 @@ class Event(models.Model):
         User,
         verbose_name='Участники мероприятия',
         related_name='events',
-        blank=True,
-        null=True,
         )
     organizers = models.ManyToManyField(
         User,

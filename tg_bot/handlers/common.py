@@ -1,5 +1,6 @@
 from contextlib import suppress
 
+from django.conf import settings
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton, TelegramError
 
 from tg_bot.models import Speech
@@ -245,7 +246,7 @@ def edit_event(update, context, title=None, text=None):
     ]
     text = '<b>Название мероприятия</b>\n\n' \
            'Здесь вы можете изменить название и описание мероприятия. ' \
-           'Для более подробного редактирования используйте <a href="127.0.0.1:8000">админ панель</a>'  # TODO ссылка на админку
+           f'Для более подробного редактирования используйте <a href="{settings.EVENTS_URL}">админ панель</a>'
 
     if msg_to_delete := context.user_data.pop('msg_to_delete'):
         context.bot.delete_message(

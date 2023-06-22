@@ -17,7 +17,9 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
+import tg_bot.views
+
 urlpatterns = [
-    path('', admin.site.urls),
+    path('', tg_bot.views.admin),
     path('admin/', admin.site.urls),
 ]

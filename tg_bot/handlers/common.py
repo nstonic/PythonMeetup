@@ -109,7 +109,7 @@ def show_start_menu(update: Update, context):
 def show_event(update, context, event_id):
     context.user_data['current_event'] = event_id
 
-    event = Event.objects.get(id=event_id)
+    event = Event.objects.get(id=int(event_id))
     event_title = event.title
     event_text = event.description
 
@@ -243,7 +243,7 @@ def ask_for_event_text(update, context):
 
 
 def delete_event(update, context, event_id):
-    Event.objects.filter(event=event_id).delete()
+    Event.objects.filter(pk=event_id).delete()
     context.bot.answerCallbackQuery(
         update.callback_query.id,
         'Мероприятие удалено'
@@ -254,30 +254,35 @@ def delete_event(update, context, event_id):
 def edit_event(update, context, title=None, text=None):
     if title:
         if event_id := context.user_data.get('current_event'):
-            Event.objects.filter(event=event_id).update(title=update.message.text)
+            Event.objects.filter(pk=int(event_id)).update(title=update.message.text)
         else:
-            Event.objects.create(title=update.message.text,
-                                 organizers=update.message.text)
+            event = Event.objects.create(
+                title=update.message.text,
+                organizers=update.message.text
+            )
+            event_id = event.id
             context.user_data['current_event'] = event_id
-
-    if text:
+    elif text:
         event_id = context.user_data['current_event']
         Event.objects.filter(event=event_id).update(description=update.message.text)
+
+    event = Event.objects.get(pk=int(context.user_data['current_event']))
 
     keyboard = [
         [InlineKeyboardButton('Изменить название', callback_data='title')],
         [InlineKeyboardButton('Изменить описание', callback_data='text')],
         [InlineKeyboardButton('Удалить', callback_data='delete')]
     ]
-    text = '<b>Название мероприятия</b>\n\n' \
+    text = f'<b>{event.title}</b>\n\n' \
            'Здесь вы можете изменить название и описание мероприятия. ' \
            f'Для более подробного редактирования используйте <a href="{settings.EVENTS_URL}">админ панель</a>'
 
-    if msg_to_delete := context.user_data.pop('msg_to_delete'):
+    if msg_to_delete := context.user_data.get('msg_to_delete'):
         context.bot.delete_message(
             chat_id=update.effective_chat.id,
             message_id=msg_to_delete
         )
+        context.user_data['msg_to_delete'] = None
     answer_to_user(
         update,
         context,

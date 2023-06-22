@@ -54,7 +54,7 @@ def handle_future_events(update, context):
     if query == 'back':
         return show_start_menu(update, context)
     else:
-        event_id = context.user_data['current_event']
+        event_id = query
         return show_event(update, context, event_id)
 
 

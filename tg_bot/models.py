@@ -55,9 +55,7 @@ class User(models.Model):
         )
     is_admin = models.BooleanField(
         verbose_name='Признак администратора',
-        blank=True,
-        null=True,
-        default=False,
+        default=False
         )
 
     class Meta:
@@ -159,7 +157,7 @@ class Speech(models.Model):
         )
 
     def __str__(self):
-        return f'{self.speaker} - {self.title}'
+        return f'{self.started_at.strftime("%H:%M")}-{self.finished_at.strftime("%H:%M")} - {self.speaker} - {self.title}'
 
     class Meta:
         verbose_name = 'Доклад'

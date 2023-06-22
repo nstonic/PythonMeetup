@@ -69,15 +69,10 @@ def get_closest_event_to_dt(qs, dt):
 
 
 def show_start_menu(update, context):
-    # context.user_data['current_event'] = None
     user_id = update.effective_chat.id
     event_id = get_closest_event_to_dt(Event, datetime.now()).id  # TODO Ищем мероприятие, которое сейчас проходит. Если нет, то ближайшее, которое ожидается
     text = 'Добро пожаловать в бот PythonMeetup'
     context.user_data['current_event'] = event_id
-    speech_list = Speech.objects.filter(event=event_id)
-    print('_______', speech_list)
-    print(context.user_data)
-    print(user_id)
     keyboard = [
         [InlineKeyboardButton('Ближайшее мероприятие', callback_data=event_id)],
         [InlineKeyboardButton('Расписание мероприятий', callback_data='future_events')]
@@ -227,7 +222,7 @@ def edit_event(update, context, title=None, text=None):
         if event_id := context.user_data.get('current_event'):
             Event.objects.filter(event=event_id).update(title=update.message.text)  # TODO Меняем название мероприятия
         else:
-            Event.objects.create(title=update.message.text)  # TODO Создаём в базе мероприятие. Пока только с названием. Без других данных
+            Event.objects.create(title=update.message.text, organizers=update.message.text)  # TODO Создаём в базе мероприятие. Пока только с названием. Без других данных
             context.user_data['current_event'] = event_id
 
     if text:

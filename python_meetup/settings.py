@@ -121,4 +121,5 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+TG_TOKEN = env('TG_TOKEN')
 EVENTS_URL = env('EVENTS_URL', 'http://127.0.0.1:8000/admin/tg_bot/event/')

@@ -1,6 +1,10 @@
+import json
 from contextlib import suppress
+from datetime import timedelta
 
 from django.conf import settings
+from django.db.models import QuerySet
+from django.utils.datetime_safe import datetime
 from django.utils.timezone import now
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton, TelegramError, Update
 
@@ -61,13 +65,6 @@ def answer_to_user(
     )
 
 
-def get_closest_event_to_dt(event_model, dt):
-    event = event_model.objects.filter(started_at__gte=dt, finished_at__lte=dt).first()
-    if not event:
-        event = event_model.objects.filter(started_at__gte=dt).order_by("started_at").first()
-    return event
-
-
 def show_start_menu(update: Update, context):
     user_id = update.effective_chat.id
     context.user_data['current_event'] = None
@@ -75,7 +72,7 @@ def show_start_menu(update: Update, context):
         [InlineKeyboardButton('Расписание мероприятий', callback_data='future_events')]
     ]
 
-    event = get_closest_event_to_dt(Event, now())
+    event = Event.objects.get_current_or_closest()
     if event:
         keyboard.insert(
             0,
@@ -165,8 +162,7 @@ def register(update, context, event_id):
 
 
 def ask(update, context):
-    right_now = now()
-    speech = Speech.objects.filter(started_at__gte=right_now, finished_at__lt=right_now)
+    speech = Speech.objects.get_current()
     if speech:
         speaker = speech.speaker
         text = f'Задайте свой вопрос.\nТекущий спикер - <b>{speaker.fullname}</b>'
@@ -200,7 +196,8 @@ def donate(update, context, event_id):
 
 
 def show_future_events(update, context):
-    events = Event.objects.filter(started_at__gte=now())
+    context.user_data['current_event'] = None
+    events = Event.objects.filter_futures()
     keyboard = []
     if events:
         text = 'Вот какие мероприятия пройдут в скором времени'
@@ -244,7 +241,7 @@ def ask_for_event_text(update, context):
 
 def delete_event(update, context, event_id):
     Event.objects.filter(pk=event_id).delete()
-    context.bot.answerCallbackQuery(
+    context.bot.answer_callback_query(
         update.callback_query.id,
         'Мероприятие удалено'
     )
@@ -278,10 +275,11 @@ def edit_event(update, context, title=None, text=None):
            f'Для более подробного редактирования используйте <a href="{settings.EVENTS_URL}">админ панель</a>'
 
     if msg_to_delete := context.user_data.get('msg_to_delete'):
-        context.bot.delete_message(
-            chat_id=update.effective_chat.id,
-            message_id=msg_to_delete
-        )
+        with suppress(TelegramError):
+            context.bot.delete_message(
+                chat_id=update.effective_chat.id,
+                message_id=msg_to_delete
+            )
         context.user_data['msg_to_delete'] = None
     answer_to_user(
         update,
@@ -291,3 +289,24 @@ def edit_event(update, context, title=None, text=None):
         parse_mode='HTML'
     )
     return 'HANDLE_EDIT_EVENT'
+
+
+def extend_speech(update, context):
+    json_raw = update.callback_query.data.replace('extend_', '', 1)
+    extending_data = json.loads(json_raw)
+    moment = datetime.fromtimestamp(extending_data.get('ts', now().timestamp()))
+    extending_time = extending_data.get('extend', 0)
+    speech = Speech.objects.get_current(moment=moment)
+    if not speech.finished_at < now():
+        speech.finished_at += timedelta(minutes=extending_time)
+        speech.do_not_notify = False
+        speech.save()
+        context.bot.answer_callback_query(
+            update.callback_query.id,
+            f'Выступление продлено на {extending_time} минут'
+        )
+    with suppress(TelegramError):
+        context.bot.delete_message(
+            chat_id=update.effective_chat.id,
+            message_id=update.effective_message.message_id
+        )

@@ -1,7 +1,5 @@
 from functools import partial
 
-from telegram import Update
-
 from .common import (
     show_future_events,
     edit_event,
@@ -15,7 +13,8 @@ from .common import (
     ask_for_event_title,
     ask_for_event_text,
     delete_event,
-    send_question
+    send_question,
+    extend_speech
 )
 
 
@@ -118,6 +117,8 @@ def handle_users_reply(update, context):
         user_reply = update.message.text
     elif update.callback_query:
         user_reply = update.callback_query.data
+        if user_reply.startswith('extend_'):
+            extend_speech(update, context)
     else:
         return
 

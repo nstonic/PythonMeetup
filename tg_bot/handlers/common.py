@@ -220,14 +220,15 @@ def delete_event(update, context: CallbackContext, event_id):
 def edit_event(update, context, title=None, text=None):
     if title:
         if event_id := context.user_data.get('current_event'):
-            Event.objects.filter(event=event_id).update(title=update.message.text)  # TODO Меняем название мероприятия
+            Event.objects.filter(id=event_id).update(title=update.message.text)  # TODO Меняем название мероприятия
         else:
-            Event.objects.create(title=update.message.text, organizers=update.message.text)  # TODO Создаём в базе мероприятие. Пока только с названием. Без других данных
+            Event.objects.create(title=update.message.text).organizers.set(User.objects.filter(id=1))  # TODO Создаём в базе мероприятие. Пока только с названием. Без других данных
             context.user_data['current_event'] = event_id
 
     if text:
         event_id = context.user_data['current_event']
-        Event.objects.filter(event=event_id).update(description=update.message.text)
+        # print(Event.objects.get(id=event_id).description)
+        Event.objects.filter(id=event_id).update(description=update.message.text)
         # TODO Меняем описание мероприятия
 
     keyboard = [

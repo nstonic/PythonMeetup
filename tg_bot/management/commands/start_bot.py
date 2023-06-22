@@ -23,6 +23,7 @@ class Command(BaseCommand):
         dispatcher.add_handler(MessageHandler(Filters.text, handle_users_reply))
         dispatcher.add_handler(CommandHandler('start', handle_users_reply))
         updater.start_polling()
+        updater.idle()
 
 
 if __name__ == '__main__':  # Для упрощенного запуска в IDE

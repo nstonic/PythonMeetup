@@ -1,7 +1,5 @@
 from functools import partial
 
-from telegram import Update
-
 from .common import (
     ask_activity,
     ask_age,
@@ -23,7 +21,8 @@ from .common import (
     ask_for_event_title,
     ask_for_event_text,
     delete_event,
-    send_question
+    send_question,
+    extend_speech
 )
 
 
@@ -62,7 +61,7 @@ def handle_future_events(update, context):
     if query == 'back':
         return show_start_menu(update, context)
     else:
-        event_id = context.user_data['current_event']
+        event_id = query
         return show_event(update, context, event_id)
 
 
@@ -174,6 +173,8 @@ def handle_users_reply(update, context):
         user_reply = update.message.text
     elif update.callback_query:
         user_reply = update.callback_query.data
+        if user_reply.startswith('extend_'):
+            extend_speech(update, context)
     else:
         return
 

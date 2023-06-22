@@ -1,8 +1,14 @@
+import json
 from contextlib import suppress
+from datetime import timedelta
 
-from telegram import InlineKeyboardMarkup, InlineKeyboardButton, TelegramError
+from django.conf import settings
+from django.db.models import QuerySet
+from django.utils.datetime_safe import datetime
+from django.utils.timezone import now
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton, TelegramError, Update
 
-from tg_bot.models import Speech, Event, User
+from tg_bot.models import Event, User, Speech
 
 
 def answer_to_user(
@@ -59,20 +65,33 @@ def answer_to_user(
     )
 
 
-def show_start_menu(update, context):
-    context.user_data['current_event'] = None
+def show_start_menu(update: Update, context):
     user_id = update.effective_chat.id
-    event_id = 1  # TODO Ищем мероприятие, которое сейчас проходит. Если нет, то ближайшее, которое ожидается
-    text = 'Добро пожаловать в бот PythonMeetup'
+    context.user_data['current_event'] = None
     keyboard = [
-        [InlineKeyboardButton('Ближайшее мероприятие', callback_data=event_id)],
         [InlineKeyboardButton('Расписание мероприятий', callback_data='future_events')]
     ]
-    if user_id:  # TODO Сюда вставить проверку является ли пользователь админом
+
+    event = Event.objects.get_current_or_closest()
+    if event:
+        keyboard.insert(
+            0,
+            [InlineKeyboardButton('Ближайшее мероприятие', callback_data=event.id)]
+        )
+
+    user, created = User.objects.get_or_create(
+        telegram_id=user_id,
+        defaults={
+            'nickname': update.effective_chat.username or user_id,
+            'fullname': update.effective_chat.full_name or user_id
+        }
+    )
+    if user.is_admin:
         keyboard.append(
             [InlineKeyboardButton('Создать мероприятие', callback_data='create_event')]
         )
 
+    text = 'Добро пожаловать в бот PythonMeetup'
     answer_to_user(
         update,
         context,
@@ -87,28 +106,28 @@ def show_start_menu(update, context):
 def show_event(update, context, event_id):
     context.user_data['current_event'] = event_id
 
-    event = None  # TODO получаем данные о мероприятии
-    event_title = 'Учим python-telegram-bot'
-    event_text = 'Сильно учим'
+    event = Event.objects.get(id=int(event_id))
+    event_title = event.title
+    event_text = event.description
 
     user_id = update.effective_chat.id
-    user = None  # TODO получаем данные о пользователе
+    user = User.objects.get(telegram_id=user_id)
 
     keyboard = [
         [InlineKeyboardButton('Расписание выступлений', callback_data='speech_list')]
     ]
-    if user:  # TODO Проверяем, что пользователь не зарегистрирован как участник данного мероприятия
+    if user not in event.members.all():
         keyboard.append(
             [InlineKeyboardButton('Регистрация', callback_data='register')]
         )
     else:
-        if True:  # TODO Проверяем, что мероприятие проходит в данный момент
+        if event.started_at <= now():
             keyboard.append(
                 [InlineKeyboardButton('Задать вопрос', callback_data='ask'),
                  InlineKeyboardButton('Познакомиться', callback_data='meet')]
             )
 
-    if user:  # TODO Проверяем, является ли пользователь организатором данного мероприятия
+    if user in event.organizers.all():
         keyboard.append(
             [InlineKeyboardButton('Редактировать', callback_data='edit')]
         )
@@ -128,7 +147,7 @@ def show_event(update, context, event_id):
 
 
 def show_speech_list(update, context, event_id):
-    speech_list = []  # TODO получаем данные о выступлениях на данном мероприятии
+    speech_list = Speech.objects.filter(event=event_id)
     text = '\n'.join(speech_list) or 'Еще не заявлено ни одного докладчика'
     answer_to_user(
         update,
@@ -143,11 +162,13 @@ def register(update, context, event_id):
 
 
 def ask(update, context):
-    event_id = context.user_data['current_event']
-    speech = Speech.objects.get(pk=1)  # TODO получаем текущее выступление
-    speaker = speech.speaker
-    text = f'Задайте свой вопрос.\nТекущий спикер - <b>{speaker.fullname}</b>'
-    context.user_data['speaker_id'] = speaker.id
+    speech = Speech.objects.get_current()
+    if speech:
+        speaker = speech.speaker
+        text = f'Задайте свой вопрос.\nТекущий спикер - <b>{speaker.fullname}</b>'
+        context.user_data['speaker_id'] = speaker.id
+    else:
+        text = f'Дождитесь начала выступления'
     message = answer_to_user(
         update,
         context,
@@ -186,7 +207,8 @@ def donate(update, context, event_id):
 
 
 def show_future_events(update, context):
-    events = []  # TODO получаем список грядущих мероприятий
+    context.user_data['current_event'] = None
+    events = Event.objects.filter_futures()
     keyboard = []
     if events:
         text = 'Вот какие мероприятия пройдут в скором времени'
@@ -299,8 +321,8 @@ def ask_speciality(update, context):
 
 
 def delete_event(update, context, event_id):
-    # TODO Удаляем мероприятие
-    context.bot.answerCallbackQuery(
+    Event.objects.filter(pk=event_id).delete()
+    context.bot.answer_callback_query(
         update.callback_query.id,
         'Мероприятие удалено'
     )
@@ -310,29 +332,36 @@ def delete_event(update, context, event_id):
 def edit_event(update, context, title=None, text=None):
     if title:
         if event_id := context.user_data.get('current_event'):
-            pass  # TODO Меняем название мероприятия
+            Event.objects.filter(pk=int(event_id)).update(title=update.message.text)
         else:
-            event_id: int  # TODO Создаём в базе мероприятие. Пока только с названием. Без других данных
+            event = Event.objects.create(
+                title=update.message.text,
+                organizers=update.message.text
+            )
+            event_id = event.id
             context.user_data['current_event'] = event_id
-
-    if text:
+    elif text:
         event_id = context.user_data['current_event']
-        # TODO Меняем описание мероприятия
+        Event.objects.filter(event=event_id).update(description=update.message.text)
+
+    event = Event.objects.get(pk=int(context.user_data['current_event']))
 
     keyboard = [
         [InlineKeyboardButton('Изменить название', callback_data='title')],
         [InlineKeyboardButton('Изменить описание', callback_data='text')],
         [InlineKeyboardButton('Удалить', callback_data='delete')]
     ]
-    text = '<b>Название мероприятия</b>\n\n' \
+    text = f'<b>{event.title}</b>\n\n' \
            'Здесь вы можете изменить название и описание мероприятия. ' \
-           'Для более подробного редактирования используйте <a href="127.0.0.1:8000">админ панель</a>'  # TODO ссылка на админку
+           f'Для более подробного редактирования используйте <a href="{settings.EVENTS_URL}">админ панель</a>'
 
-    if msg_to_delete := context.user_data.pop('msg_to_delete'):
-        context.bot.delete_message(
-            chat_id=update.effective_chat.id,
-            message_id=msg_to_delete
-        )
+    if msg_to_delete := context.user_data.get('msg_to_delete'):
+        with suppress(TelegramError):
+            context.bot.delete_message(
+                chat_id=update.effective_chat.id,
+                message_id=msg_to_delete
+            )
+        context.user_data['msg_to_delete'] = None
     answer_to_user(
         update,
         context,
@@ -349,3 +378,29 @@ def save_member(update, context, **attrs):
         setattr(current_user, attr, value)
     current_user.save()
     return
+
+  
+def extend_speech(update, context):
+    json_raw = update.callback_query.data.replace('extend_', '', 1)
+    extending_data = json.loads(json_raw)
+    moment = datetime.fromtimestamp(extending_data.get('ts', now().timestamp()))
+    extending_time = extending_data.get('extend', 0)
+    speech = Speech.objects.get_current(moment=moment)
+    if not speech.finished_at < now():
+        speech.finished_at += timedelta(minutes=extending_time)
+        if extending_time == 0:
+            speech.do_not_notify = True
+        else:
+            speech.do_not_notify = False
+            with suppress(TelegramError):
+                context.bot.answer_callback_query(
+                    update.callback_query.id,
+                    f'Выступление продлено на {extending_time} минут'
+                )
+        speech.save()
+
+    with suppress(TelegramError):
+        context.bot.delete_message(
+            chat_id=update.effective_chat.id,
+            message_id=update.effective_message.message_id
+        )

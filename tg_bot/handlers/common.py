@@ -1,9 +1,7 @@
 from contextlib import suppress
 
 from django.conf import settings
-from telegram import InlineKeyboardMarkup, InlineKeyboardButton, TelegramError
-
-from tg_bot.models import Speech
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton, TelegramError, Update
 
 from tg_bot.models import Event, User, Speech
 from datetime import datetime
@@ -63,28 +61,37 @@ def answer_to_user(
     )
 
 
-def get_closest_event_to_dt(qs, dt):
-    event = qs.objects.filter(started_at__gte=dt, finished_at__lte=dt).first()
+def get_closest_event_to_dt(event_model, dt):
+    event = event_model.objects.filter(started_at__gte=dt, finished_at__lte=dt).first()
     if not event:
-        event = qs.objects.filter(started_at__gte=dt).order_by("started_at").first()
+        event = event_model.objects.filter(started_at__gte=dt).order_by("started_at").first()
     return event
 
 
-def show_start_menu(update, context):
+def show_start_menu(update: Update, context):
     user_id = update.effective_chat.id
-    event_id = get_closest_event_to_dt(Event, datetime.now()).id  # TODO Ищем мероприятие, которое сейчас проходит. Если нет, то ближайшее, которое ожидается
-    text = 'Добро пожаловать в бот PythonMeetup'
-    context.user_data['current_event'] = event_id
+    context.user_data['current_event'] = None
     keyboard = [
-        [InlineKeyboardButton('Ближайшее мероприятие', callback_data=event_id)],
         [InlineKeyboardButton('Расписание мероприятий', callback_data='future_events')]
     ]
-    user = User.objects.get(telegram_id=user_id)
-    if user.is_admin:  # TODO Сюда вставить проверку является ли пользователь админом
+
+    event = get_closest_event_to_dt(Event, datetime.now())
+    if event:
+        keyboard.insert(
+            0,
+            [InlineKeyboardButton('Ближайшее мероприятие', callback_data=event.id)]
+        )
+
+    user, created = User.objects.get_or_create(
+        telegram_id=user_id,
+        defaults={'nickname': update.effective_chat.username or user_id}
+    )
+    if user.is_admin:
         keyboard.append(
             [InlineKeyboardButton('Создать мероприятие', callback_data='create_event')]
         )
 
+    text = 'Добро пожаловать в бот PythonMeetup'
     answer_to_user(
         update,
         context,
@@ -99,28 +106,28 @@ def show_start_menu(update, context):
 def show_event(update, context, event_id):
     context.user_data['current_event'] = event_id
 
-    event = Event.objects.get(id=event_id)  # TODO получаем данные о мероприятии
+    event = Event.objects.get(id=event_id)
     event_title = event.title
     event_text = event.description
 
     user_id = update.effective_chat.id
-    user = User.objects.get(telegram_id=user_id)  # TODO получаем данные о пользователе
+    user = User.objects.get(telegram_id=user_id)
 
     keyboard = [
         [InlineKeyboardButton('Расписание выступлений', callback_data='speech_list')]
     ]
-    if user not in event.members.all():  # TODO Проверяем, что пользователь не зарегистрирован как участник данного мероприятия
+    if user not in event.members.all():
         keyboard.append(
             [InlineKeyboardButton('Регистрация', callback_data='register')]
         )
     else:
-        if event.started_at <= datetime.now():  # TODO Проверяем, что мероприятие проходит в данный момент
+        if event.started_at <= datetime.now():
             keyboard.append(
                 [InlineKeyboardButton('Задать вопрос', callback_data='ask'),
                  InlineKeyboardButton('Познакомиться', callback_data='meet')]
             )
 
-    if user in event.organizers.all():  # TODO Проверяем, является ли пользователь организатором данного мероприятия
+    if user in event.organizers.all():
         keyboard.append(
             [InlineKeyboardButton('Редактировать', callback_data='edit')]
         )
@@ -140,7 +147,7 @@ def show_event(update, context, event_id):
 
 
 def show_speech_list(update, context, event_id):
-    speech_list = Speech.objects.filter(event=event_id)  # TODO получаем данные о выступлениях на данном мероприятии
+    speech_list = Speech.objects.filter(event=event_id)
     text = '\n'.join(speech_list) or 'Еще не заявлено ни одного докладчика'
     answer_to_user(
         update,
@@ -156,10 +163,14 @@ def register(update, context, event_id):
 
 def ask(update, context):
     event_id = context.user_data['current_event']
-    speech = Speech.objects.get(pk=1)  # TODO получаем текущее выступление
-    speaker = speech.speaker
-    text = f'Задайте свой вопрос.\nТекущий спикер - <b>{speaker.fullname}</b>'
-    context.user_data['speaker_id'] = speaker.id
+    right_now = datetime.now()
+    speech = Speech.objects.filter(started_at__gte=right_now, finished_at__lt=right_now)
+    if speech:
+        speaker = speech.speaker
+        text = f'Задайте свой вопрос.\nТекущий спикер - <b>{speaker.fullname}</b>'
+        context.user_data['speaker_id'] = speaker.id
+    else:
+        text = f'Дождитесь начала выступления'
     message = answer_to_user(
         update,
         context,
@@ -187,7 +198,7 @@ def donate(update, context, event_id):
 
 
 def show_future_events(update, context):
-    events = Event.objects.filter(started_at__gte=datetime.now()) # TODO получаем список грядущих мероприятий
+    events = Event.objects.filter(started_at__gte=datetime.now())
     keyboard = []
     if events:
         text = 'Вот какие мероприятия пройдут в скором времени'
@@ -230,7 +241,6 @@ def ask_for_event_text(update, context):
 
 
 def delete_event(update, context, event_id):
-    # TODO Удаляем мероприятие
     Event.objects.filter(event=event_id).delete()
     context.bot.answerCallbackQuery(
         update.callback_query.id,
@@ -242,15 +252,15 @@ def delete_event(update, context, event_id):
 def edit_event(update, context, title=None, text=None):
     if title:
         if event_id := context.user_data.get('current_event'):
-            Event.objects.filter(event=event_id).update(title=update.message.text)  # TODO Меняем название мероприятия
+            Event.objects.filter(event=event_id).update(title=update.message.text)
         else:
-            Event.objects.create(title=update.message.text, organizers=update.message.text)  # TODO Создаём в базе мероприятие. Пока только с названием. Без других данных
+            Event.objects.create(title=update.message.text,
+                                 organizers=update.message.text)
             context.user_data['current_event'] = event_id
 
     if text:
         event_id = context.user_data['current_event']
         Event.objects.filter(event=event_id).update(description=update.message.text)
-        # TODO Меняем описание мероприятия
 
     keyboard = [
         [InlineKeyboardButton('Изменить название', callback_data='title')],

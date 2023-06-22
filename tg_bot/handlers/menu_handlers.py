@@ -113,6 +113,10 @@ def handle_question(update, context):
     return show_start_menu(update, context)
 
 
+def handle_fullname(update, context):
+    fullname = update.message.text
+
+
 def handle_users_reply(update, context):
     if update.message:
         user_reply = update.message.text
@@ -134,7 +138,8 @@ def handle_users_reply(update, context):
         'HANDLE_EDIT_EVENT': handle_edit_event,
         'HANDLE_EVENT_TITLE': handle_event_title,
         'HANDLE_EVENT_TEXT': handle_event_text,
-        'HANDLE_QUESTION': handle_question
+        'HANDLE_QUESTION': handle_question,
+        'HANDLE_FULLNAME': handle_fullname,
     }
     state_handler = state_functions.get(user_state, show_start_menu)
     next_state = state_handler(

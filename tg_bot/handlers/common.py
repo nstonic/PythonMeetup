@@ -2,7 +2,7 @@ from contextlib import suppress
 
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton, TelegramError
 
-from tg_bot.models import Speech
+from tg_bot.models import Speech, Event, User
 
 
 def answer_to_user(
@@ -97,7 +97,7 @@ def show_event(update, context, event_id):
     keyboard = [
         [InlineKeyboardButton('Расписание выступлений', callback_data='speech_list')]
     ]
-    if not user:  # TODO Проверяем, что пользователь не зарегистрирован как участник данного мероприятия
+    if user:  # TODO Проверяем, что пользователь не зарегистрирован как участник данного мероприятия
         keyboard.append(
             [InlineKeyboardButton('Регистрация', callback_data='register')]
         )
@@ -167,7 +167,23 @@ def send_question(update, context, question):
 
 
 def meet(update, context):
-    pass
+    user_id = update.effective_chat.id
+    name = update.effective_chat.username
+    member = User.objects.get_or_create(telegram_id=user_id, nickname=name)
+    if not member.fullname:
+        answer_to_user(
+            update,
+            context,
+            text='Введите, пожалуйста, свое полное имя'
+            )
+        return 'HANDLE_FULLNAME'
+    else:
+        answer_to_user(
+            update,
+            context
+            text='Введите, пожалуйста, свой возраст'
+            )
+        return 'HANDLE_AGE'
 
 
 def donate(update, context, event_id):
@@ -260,3 +276,6 @@ def edit_event(update, context, title=None, text=None):
         parse_mode='HTML'
     )
     return 'HANDLE_EDIT_EVENT'
+
+
+def save_member(update, context, )

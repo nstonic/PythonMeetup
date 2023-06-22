@@ -1,8 +1,16 @@
 from functools import partial
 
 from .common import (
+    ask_activity,
+    ask_age,
+    ask_hobby,
+    answer_to_user,
+    ask_purpose,
+    ask_speciality,
+    ask_stack,
     show_future_events,
     edit_event,
+    save_member,
     show_event,
     show_speech_list,
     show_start_menu,
@@ -112,6 +120,54 @@ def handle_question(update, context):
     return show_start_menu(update, context)
 
 
+def handle_fullname(update, context):
+    fullname = update.message.text
+    save_member(update, context, fullname=fullname)
+    return ask_age(update, context)
+
+
+def handle_age(update, context):
+    age = int(update.message.text)
+    save_member(update, context, age=age)
+    return ask_activity(update, context)
+
+
+def handle_activity(update, context):
+    activity = update.message.text
+    save_member(update, context, activity=activity)
+    return ask_stack(update, context)
+    
+
+def handle_stack(update, context):
+    stack = update.message.text
+    save_member(update, context, stack=stack)
+    return ask_hobby(update, context)
+
+
+def handle_hobby(update, context):
+    hobby = update.message.text
+    save_member(update, context, hobby=hobby)
+    return ask_purpose(update, context)
+
+
+def handle_purpose(update, context):
+    purpose = update.message.text
+    save_member(update, context, purpose=purpose)
+    return ask_speciality(update, context)
+
+
+def handle_speciality(update, context):
+    speciality = update.message.text
+    save_member(update, context, speciality=speciality)
+    answer_to_user(
+        update,
+        context,
+        text='Благодарим за участие',
+        add_back_button=False,
+        )
+    return show_start_menu(update, context)
+
+
 def handle_users_reply(update, context):
     if update.message:
         user_reply = update.message.text
@@ -135,7 +191,14 @@ def handle_users_reply(update, context):
         'HANDLE_EDIT_EVENT': handle_edit_event,
         'HANDLE_EVENT_TITLE': handle_event_title,
         'HANDLE_EVENT_TEXT': handle_event_text,
-        'HANDLE_QUESTION': handle_question
+        'HANDLE_QUESTION': handle_question,
+        'HANDLE_FULLNAME': handle_fullname,
+        'HANDLE_AGE': handle_age,
+        'HANDLE_ACTIVITY': handle_activity,
+        'HANDLE_STACK': handle_stack,
+        'HANDLE_HOBBY': handle_hobby,
+        'HANDLE_PURPOSE': handle_purpose,
+        'HANDLE_SPECIALITY': handle_speciality,
     }
     state_handler = state_functions.get(user_state, show_start_menu)
     next_state = state_handler(

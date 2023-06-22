@@ -188,7 +188,18 @@ def send_question(update, context, question):
 
 
 def meet(update, context):
-    pass
+    user_id = update.effective_chat.id
+    name = update.effective_chat.username
+    member, _ = User.objects.get_or_create(telegram_id=user_id, nickname=name)
+    if not member.fullname:
+        answer_to_user(
+            update,
+            context,
+            text='Введите, пожалуйста, свое полное имя'
+            )
+        return 'HANDLE_FULLNAME'
+    else:
+        return ask_age(update, context)
 
 
 def donate(update, context, event_id):
@@ -222,7 +233,8 @@ def ask_for_event_title(update, context):
     message = answer_to_user(
         update,
         context,
-        text
+        text,
+        add_back_button=False,
     )
     context.user_data['msg_to_delete'] = message.message_id
     return 'HANDLE_EVENT_TITLE'
@@ -233,10 +245,79 @@ def ask_for_event_text(update, context):
     message = answer_to_user(
         update,
         context,
-        text
+        text,
+        add_back_button=False,
+        edit_current_message=False,
     )
     context.user_data['msg_to_delete'] = message.message_id
     return 'HANDLE_EVENT_TEXT'
+
+
+def ask_age(update, context):
+    text = 'Сколько Вам лет? (введите цифрами)'
+    answer_to_user(
+            update,
+            context,
+            text,
+            add_back_button=False,
+            edit_current_message=False,
+            )
+    return 'HANDLE_AGE'
+
+
+def ask_activity(update, context):
+    text = 'Укажите, пожалуйста, Ваш род деятельности'
+    answer_to_user(
+            update,
+            context,
+            text,
+            add_back_button=False,
+            )
+    return 'HANDLE_ACTIVITY'
+
+
+def ask_stack(update, context):
+    text = 'Опишите свои навыки, применяемый стек технологий'
+    answer_to_user(
+            update,
+            context,
+            text,
+            add_back_button=False,
+            )
+    return 'HANDLE_STACK'
+
+
+def ask_hobby(update, context):
+    text = 'Есть ли у Вас хобби? Какое?'
+    answer_to_user(
+            update,
+            context,
+            text,
+            add_back_button=False,
+            )
+    return 'HANDLE_HOBBY'
+
+
+def ask_purpose(update, context):
+    text = 'Опишите, пожалуйста, какие цели Вы ожидаете достичь в ходе встречи'
+    answer_to_user(
+            update,
+            context,
+            text,
+            add_back_button=False,
+            )
+    return 'HANDLE_PURPOSE'
+
+
+def ask_speciality(update, context):
+    text = 'Если хотите, то можете указать дополнительную информацию о себе'
+    answer_to_user(
+            update,
+            context,
+            text,
+            add_back_button=False,
+            )
+    return 'HANDLE_SPECIALITY'
 
 
 def delete_event(update, context, event_id):
@@ -291,6 +372,14 @@ def edit_event(update, context, title=None, text=None):
     return 'HANDLE_EDIT_EVENT'
 
 
+def save_member(update, context, **attrs):
+    current_user = User.objects.get(telegram_id=update.effective_chat.id)
+    for attr, value in attrs.items():
+        setattr(current_user, attr, value)
+    current_user.save()
+    return
+
+  
 def extend_speech(update, context):
     json_raw = update.callback_query.data.replace('extend_', '', 1)
     extending_data = json.loads(json_raw)

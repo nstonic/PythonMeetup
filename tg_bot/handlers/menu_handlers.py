@@ -14,7 +14,8 @@ from .common import (
     donate,
     ask_for_event_title,
     ask_for_event_text,
-    delete_event
+    delete_event,
+    send_question
 )
 
 
@@ -97,7 +98,19 @@ def handle_event_text(update, context):
     if update.message:
         text = update.message.text
         return edit_event(update, context, text=text)
-    return edit_event(update, context)
+
+    if event_id := context.user_data.get('current_event'):
+        return show_event(update, context, event_id=event_id)
+    else:
+        return show_start_menu(update, context)
+
+
+def handle_question(update, context):
+    if update.message:
+        question = update.message.text
+        return send_question(update, context, question=question)
+
+    return show_start_menu(update, context)
 
 
 def handle_users_reply(update, context):
@@ -120,7 +133,8 @@ def handle_users_reply(update, context):
         'HANDLE_SPEECH_LIST_MENU': handle_speech_list_menu,
         'HANDLE_EDIT_EVENT': handle_edit_event,
         'HANDLE_EVENT_TITLE': handle_event_title,
-        'HANDLE_EVENT_TEXT': handle_event_text
+        'HANDLE_EVENT_TEXT': handle_event_text,
+        'HANDLE_QUESTION': handle_question
     }
     state_handler = state_functions.get(user_state, show_start_menu)
     next_state = state_handler(

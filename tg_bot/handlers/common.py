@@ -1,7 +1,8 @@
 from contextlib import suppress
 
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton, TelegramError
-from telegram.ext import CallbackContext
+
+from tg_bot.models import Speech
 
 
 def answer_to_user(
@@ -142,7 +143,27 @@ def register(update, context, event_id):
 
 
 def ask(update, context):
-    pass
+    event_id = context.user_data['current_event']
+    speech = Speech.objects.get(pk=1)  # TODO получаем текущее выступление
+    speaker = speech.speaker
+    text = f'Задайте свой вопрос.\nТекущий спикер - <b>{speaker.fullname}</b>'
+    context.user_data['speaker_id'] = speaker.id
+    message = answer_to_user(
+        update,
+        context,
+        text,
+        parse_mode='HTML'
+    )
+    context.user_data['msg_to_delete'] = message.message_id
+    return 'HANDLE_QUESTION'
+
+
+def send_question(update, context, question):
+    context.bot.send_message(
+        chat_id=context.user_data.pop('speaker_id'),
+        text=question
+    )
+    return show_event(update, context, context.user_data['current_event'])
 
 
 def meet(update, context):
@@ -196,7 +217,7 @@ def ask_for_event_text(update, context):
     return 'HANDLE_EVENT_TEXT'
 
 
-def delete_event(update, context: CallbackContext, event_id):
+def delete_event(update, context, event_id):
     # TODO Удаляем мероприятие
     context.bot.answerCallbackQuery(
         update.callback_query.id,

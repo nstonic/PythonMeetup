@@ -299,12 +299,17 @@ def extend_speech(update, context):
     speech = Speech.objects.get_current(moment=moment)
     if not speech.finished_at < now():
         speech.finished_at += timedelta(minutes=extending_time)
-        speech.do_not_notify = False
+        if extending_time == 0:
+            speech.do_not_notify = True
+        else:
+            speech.do_not_notify = False
+            with suppress(TelegramError):
+                context.bot.answer_callback_query(
+                    update.callback_query.id,
+                    f'Выступление продлено на {extending_time} минут'
+                )
         speech.save()
-        context.bot.answer_callback_query(
-            update.callback_query.id,
-            f'Выступление продлено на {extending_time} минут'
-        )
+
     with suppress(TelegramError):
         context.bot.delete_message(
             chat_id=update.effective_chat.id,

@@ -1,10 +1,11 @@
 from contextlib import suppress
 
 from django.conf import settings
+from django.utils.timezone import now
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton, TelegramError, Update
 
 from tg_bot.models import Event, User, Speech
-from datetime import datetime
+
 
 
 def answer_to_user(
@@ -75,7 +76,7 @@ def show_start_menu(update: Update, context):
         [InlineKeyboardButton('Расписание мероприятий', callback_data='future_events')]
     ]
 
-    event = get_closest_event_to_dt(Event, datetime.now())
+    event = get_closest_event_to_dt(Event, now())
     if event:
         keyboard.insert(
             0,
@@ -121,7 +122,7 @@ def show_event(update, context, event_id):
             [InlineKeyboardButton('Регистрация', callback_data='register')]
         )
     else:
-        if event.started_at <= datetime.now():
+        if event.started_at <= now():
             keyboard.append(
                 [InlineKeyboardButton('Задать вопрос', callback_data='ask'),
                  InlineKeyboardButton('Познакомиться', callback_data='meet')]
@@ -162,8 +163,7 @@ def register(update, context, event_id):
 
 
 def ask(update, context):
-    event_id = context.user_data['current_event']
-    right_now = datetime.now()
+    right_now = now()
     speech = Speech.objects.filter(started_at__gte=right_now, finished_at__lt=right_now)
     if speech:
         speaker = speech.speaker
@@ -198,7 +198,7 @@ def donate(update, context, event_id):
 
 
 def show_future_events(update, context):
-    events = Event.objects.filter(started_at__gte=datetime.now())
+    events = Event.objects.filter(started_at__gte=now())
     keyboard = []
     if events:
         text = 'Вот какие мероприятия пройдут в скором времени'

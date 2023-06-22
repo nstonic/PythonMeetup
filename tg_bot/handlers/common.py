@@ -7,7 +7,6 @@ from telegram import InlineKeyboardMarkup, InlineKeyboardButton, TelegramError, 
 from tg_bot.models import Event, User, Speech
 
 
-
 def answer_to_user(
         update,
         context,
@@ -85,7 +84,10 @@ def show_start_menu(update: Update, context):
 
     user, created = User.objects.get_or_create(
         telegram_id=user_id,
-        defaults={'nickname': update.effective_chat.username or user_id}
+        defaults={
+            'nickname': update.effective_chat.username or user_id,
+            'fullname': update.effective_chat.full_name or user_id
+        }
     )
     if user.is_admin:
         keyboard.append(

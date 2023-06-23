@@ -47,7 +47,6 @@ def handle_event_menu(update, context):
         'back': show_start_menu,
         'register': partial(register, event_id=event_id),
         'ask': ask,
-        'meet': meet,
         'edit': edit_event,
         'donate': partial(donate, event_id=event_id)
     }

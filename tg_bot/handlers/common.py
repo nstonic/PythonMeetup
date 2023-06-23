@@ -116,16 +116,12 @@ def show_event(update, context, event_id):
     keyboard = [
         [InlineKeyboardButton('Расписание выступлений', callback_data='speech_list')]
     ]
-    if user not in event.members.all():
+
+    if event.started_at <= now():
         keyboard.append(
-            [InlineKeyboardButton('Регистрация', callback_data='register')]
+            [InlineKeyboardButton('Задать вопрос', callback_data='ask'),
+             InlineKeyboardButton('Познакомиться', callback_data='meet')]
         )
-    else:
-        if event.started_at <= now():
-            keyboard.append(
-                [InlineKeyboardButton('Задать вопрос', callback_data='ask'),
-                 InlineKeyboardButton('Познакомиться', callback_data='meet')]
-            )
 
     if user in event.organizers.all():
         keyboard.append(
@@ -167,10 +163,6 @@ def show_speech_list(update, context, event_id):
         parse_mode='HTML'
     )
     return 'HANDLE_SPEECH_LIST_MENU'
-
-
-def register(update, context, event_id):
-    pass
 
 
 def ask(update, context):

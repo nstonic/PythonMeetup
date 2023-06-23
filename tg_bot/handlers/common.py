@@ -369,6 +369,7 @@ def save_member(update, context, **attrs):
             event = Event.objects.get(pk=event_id)
             event.meeters.add(current_user)
             event.save()
+            continue
         setattr(current_user, attr, value)
     current_user.save()
     return

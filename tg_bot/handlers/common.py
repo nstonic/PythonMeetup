@@ -5,7 +5,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.utils.datetime_safe import datetime
 from django.utils.timezone import now
-from telegram import InlineKeyboardMarkup, InlineKeyboardButton, TelegramError, Update
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton, TelegramError, Update, LabeledPrice
 
 from tg_bot.models import Event, User, Speech
 
@@ -206,8 +206,32 @@ def meet(update, context):
         return ask_age(update, context)
 
 
-def donate(update, context, event_id):
-    pass
+def donate(update, context):
+    chat_id = update.message.chat_id
+    title = "Донат"
+    description = "Donate using python-telegram-bot"
+    payload = "Custom-Payload"
+    provider_token = settings.PAYMENT_TOKEN
+    currency = "RUB"
+    price = 10
+    prices = [LabeledPrice("Донат", price * 100)]
+
+    context.bot.send_invoice(
+        chat_id, title, description, payload, provider_token, currency, prices
+    )
+
+
+def precheckout_callback(update, context):
+    query = update.pre_checkout_query
+    if query.invoice_payload != 'Custom-Payload':
+        query.answer(ok=False, error_message="Что то пошло не так...")
+    else:
+        query.answer(ok=True)
+
+
+def successful_payment_callback(update, context):
+    update.message.reply_text("Спасибо за ваше пожертовавание!")
+    return show_start_menu(update, context)
 
 
 def show_future_events(update, context):

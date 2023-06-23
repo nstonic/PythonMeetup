@@ -113,8 +113,10 @@ def handle_question(update, context):
     if update.message:
         question = update.message.text
         return send_question(update, context, question=question)
-
-    return show_start_menu(update, context)
+    if event_id := context.user_data.get('current_event'):
+        return show_event(update, context, event_id=event_id)
+    else:
+        return show_start_menu(update, context)
 
 
 def handle_fullname(update, context):

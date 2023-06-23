@@ -199,11 +199,15 @@ def ask(update, context):
 
 
 def send_question(update, context, question):
-    context.bot.send_message(
-        chat_id=context.user_data.pop('speaker_id'),
-        text=question
-    )
-    return show_event(update, context, context.user_data['current_event'])
+    try:
+        user = User.objects.get(update.effective_chat.id)
+        text = f'Вопрос от слушателя {user.fullname}:\n\n{question}'
+        context.bot.send_message(
+            chat_id=context.user_data.pop('speaker_id'),
+            text=text
+        )
+    finally:
+        return show_event(update, context, context.user_data['current_event'])
 
 
 def meet(update, context):

@@ -108,9 +108,9 @@ class Event(models.Model):
         blank=True,
         null=True,
     )
-    members = models.ManyToManyField(
+    meeters = models.ManyToManyField(
         User,
-        verbose_name='Участники мероприятия',
+        verbose_name='Заполнили анкету на мероприятии',
         related_name='events',
     )
     organizers = models.ManyToManyField(

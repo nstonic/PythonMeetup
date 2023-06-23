@@ -6,18 +6,19 @@ from django.conf import settings
 from django.utils.datetime_safe import datetime
 from django.utils.timezone import now
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton, TelegramError, Update
+from telegram.ext import CallbackContext
 
 from tg_bot.models import Event, User, Speech
 
 
 def answer_to_user(
-        update,
-        context,
+        update: Update,
+        context: CallbackContext,
         text,
         keyboard: list[list[InlineKeyboardButton]] = None,
+        image=None,
         add_back_button=True,
-        parse_mode=None,
-        edit_current_message=True
+        parse_mode=None
 ):
     """
     Функция для ответа пользователю. Рекомендуется все сообщения отправлять через нее
@@ -25,19 +26,19 @@ def answer_to_user(
     :param context: Context
     :param text: Текст сообщения
     :param keyboard: Список кнопок Inline клавиатуры
+    :param image: Ссылка на фото
     :param add_back_button: Если True, то к клавиатуре автоматически добавится кнопка "Назад" с callback_data="back"
     :param parse_mode: Режим разметки текста сообщения Markdown, HTML или None
-    :param edit_current_message: Метод отправки сообщения. Если True, то новое сообщение отправляется как
-    редактирование старого. Если False, то старое удаляется и присылается новое
     """
+
     if not keyboard:
         keyboard = []
-
     if add_back_button:
         keyboard.append(
             [InlineKeyboardButton('< Назад', callback_data='back')]
         )
-    if edit_current_message:
+
+    if not image:
         try:
             message = context.bot.edit_message_text(
                 chat_id=update.effective_chat.id,
@@ -56,12 +57,24 @@ def answer_to_user(
             chat_id=update.effective_chat.id,
             message_id=update.effective_message.message_id
         )
-    return context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=text,
-        reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode=parse_mode
-    )
+    if image:
+        with suppress(FileNotFoundError):
+            with open(f'media{image}', 'rb') as photo:
+                message = context.bot.send_photo(
+                    chat_id=update.effective_chat.id,
+                    photo=photo.read(),
+                    caption=text,
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode=parse_mode
+                )
+    else:
+        message = context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode=parse_mode
+        )
+    return message
 
 
 def show_start_menu(update: Update, context):
@@ -143,6 +156,7 @@ def show_event(update, context, event_id):
         update,
         context,
         text=text,
+        image=event.image.url if event.image else None,
         keyboard=keyboard,
         parse_mode='HTML'
     )
@@ -200,7 +214,7 @@ def meet(update, context):
             update,
             context,
             text='Введите, пожалуйста, свое полное имя'
-            )
+        )
         return 'HANDLE_FULLNAME'
     else:
         return ask_age(update, context)
@@ -257,56 +271,56 @@ def ask_for_event_text(update, context):
 def ask_age(update, context):
     text = 'Сколько Вам лет? (введите цифрами)'
     answer_to_user(
-            update,
-            context,
-            text,
-            add_back_button=False,
-            edit_current_message=False,
-            )
+        update,
+        context,
+        text,
+        add_back_button=False,
+        edit_current_message=False,
+    )
     return 'HANDLE_AGE'
 
 
 def ask_activity(update, context):
     text = 'Укажите, пожалуйста, Ваш род деятельности'
     answer_to_user(
-            update,
-            context,
-            text,
-            add_back_button=False,
-            )
+        update,
+        context,
+        text,
+        add_back_button=False,
+    )
     return 'HANDLE_ACTIVITY'
 
 
 def ask_stack(update, context):
     text = 'Опишите свои навыки, применяемый стек технологий'
     answer_to_user(
-            update,
-            context,
-            text,
-            add_back_button=False,
-            )
+        update,
+        context,
+        text,
+        add_back_button=False,
+    )
     return 'HANDLE_STACK'
 
 
 def ask_hobby(update, context):
     text = 'Есть ли у Вас хобби? Какое?'
     answer_to_user(
-            update,
-            context,
-            text,
-            add_back_button=False,
-            )
+        update,
+        context,
+        text,
+        add_back_button=False,
+    )
     return 'HANDLE_HOBBY'
 
 
 def ask_purpose(update, context):
     text = 'Опишите, пожалуйста, какие цели Вы ожидаете достичь в ходе встречи'
     answer_to_user(
-            update,
-            context,
-            text,
-            add_back_button=False,
-            )
+        update,
+        context,
+        text,
+        add_back_button=False,
+    )
     return 'HANDLE_PURPOSE'
 
 
@@ -374,7 +388,7 @@ def save_member(update, context, **attrs):
     current_user.save()
     return
 
-  
+
 def extend_speech(update, context):
     json_raw = update.callback_query.data.replace('extend_', '', 1)
     extending_data = json.loads(json_raw)

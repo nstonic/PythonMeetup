@@ -116,16 +116,12 @@ def show_event(update, context, event_id):
     keyboard = [
         [InlineKeyboardButton('Расписание выступлений', callback_data='speech_list')]
     ]
-    if user not in event.members.all():
+
+    if event.started_at <= now():
         keyboard.append(
-            [InlineKeyboardButton('Регистрация', callback_data='register')]
+            [InlineKeyboardButton('Задать вопрос', callback_data='ask'),
+             InlineKeyboardButton('Познакомиться', callback_data='meet')]
         )
-    else:
-        if event.started_at <= now():
-            keyboard.append(
-                [InlineKeyboardButton('Задать вопрос', callback_data='ask'),
-                 InlineKeyboardButton('Познакомиться', callback_data='meet')]
-            )
 
     if user in event.organizers.all():
         keyboard.append(
@@ -167,10 +163,6 @@ def show_speech_list(update, context, event_id):
         parse_mode='HTML'
     )
     return 'HANDLE_SPEECH_LIST_MENU'
-
-
-def register(update, context, event_id):
-    pass
 
 
 def ask(update, context):
@@ -246,7 +238,6 @@ def ask_for_event_title(update, context):
         update,
         context,
         text,
-        add_back_button=False,
     )
     context.user_data['msg_to_delete'] = message.message_id
     return 'HANDLE_EVENT_TITLE'
@@ -257,9 +248,7 @@ def ask_for_event_text(update, context):
     message = answer_to_user(
         update,
         context,
-        text,
-        add_back_button=False,
-        edit_current_message=False,
+        text
     )
     context.user_data['msg_to_delete'] = message.message_id
     return 'HANDLE_EVENT_TEXT'
@@ -335,23 +324,25 @@ def edit_event(update, context, title=None, text=None):
         if event_id := context.user_data.get('current_event'):
             Event.objects.filter(pk=int(event_id)).update(title=update.message.text)
         else:
-            event = Event.objects.create(title=update.message.text).organizers.set(User.objects.filter(id=1))
+            event = Event.objects.create(title=update.message.text)
+            event.organizers.set(User.objects.filter(telegram_id=update.message.from_user.id))
             event_id = event.id
             context.user_data['current_event'] = event_id
     elif text:
         event_id = context.user_data['current_event']
-        Event.objects.filter(id=event_id).update(description=update.message.text)
+        Event.objects.filter(pk=int(event_id)).update(description=update.message.text)
 
     event = Event.objects.get(pk=int(context.user_data['current_event']))
 
     keyboard = [
         [InlineKeyboardButton('Изменить название', callback_data='title')],
         [InlineKeyboardButton('Изменить описание', callback_data='text')],
-        [InlineKeyboardButton('Удалить', callback_data='delete')]
+        [InlineKeyboardButton('Удалить мероприятие', callback_data='delete')]
     ]
     text = f'<b>{event.title}</b>\n\n' \
            'Здесь вы можете изменить название и описание мероприятия. ' \
-           f'Для более подробного редактирования используйте <a href="{settings.EVENTS_URL}/{event.id}/change/">админ панель</a>'
+           f'Для более подробного редактирования используйте ' \
+           f'<a href="{settings.EVENTS_URL.rstrip("/")}/tg_bot/event/{event.id}/change/">админ панель</a>'
 
     if msg_to_delete := context.user_data.get('msg_to_delete'):
         with suppress(TelegramError):

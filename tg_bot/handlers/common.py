@@ -332,12 +332,13 @@ def edit_event(update, context, title=None, text=None):
         if event_id := context.user_data.get('current_event'):
             Event.objects.filter(pk=int(event_id)).update(title=update.message.text)
         else:
-            event = Event.objects.create(title=update.message.text).organizers.set(User.objects.filter(id=1))
+            event = Event.objects.create(title=update.message.text)
+            event.organizers.set(User.objects.filter(telegram_id=update.message.from_user.id))
             event_id = event.id
             context.user_data['current_event'] = event_id
     elif text:
         event_id = context.user_data['current_event']
-        Event.objects.filter(id=event_id).update(description=update.message.text)
+        Event.objects.filter(pk=int(event_id)).update(description=update.message.text)
 
     event = Event.objects.get(pk=int(context.user_data['current_event']))
 

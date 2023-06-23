@@ -13,7 +13,6 @@ from .common import (
     show_event,
     show_speech_list,
     show_start_menu,
-    register,
     ask,
     meet,
     donate,
@@ -45,8 +44,8 @@ def handle_event_menu(update, context):
     actions = {
         'speech_list': partial(show_speech_list, event_id=event_id),
         'back': show_start_menu,
-        'register': partial(register, event_id=event_id),
         'ask': ask,
+        'meet': meet,
         'edit': edit_event,
         'donate': partial(donate, event_id=event_id)
     }

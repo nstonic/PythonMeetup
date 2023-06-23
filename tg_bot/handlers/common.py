@@ -151,10 +151,10 @@ def show_event(update, context, event_id):
         text += '\n<b>Сроки прохождения еще не известны</b>'
     elif event.started_at < now():
         text += f'\n<b>Проходит прямо сейчас</b>.\n' \
-                f'Закончится {event.finished_at.strftime("%d.%m.%Y %H:%M")}.'
+                f'Закончится {event.finished_at.strftime("%d.%m.%Y")}.'
     else:
-        text += f'\nПроходит с {event.started_at.strftime("%d.%m.%Y %H:%M")}' \
-                f' по {event.finished_at.strftime("%d.%m.%Y %H:%M")}.'
+        text += f'\nПроходит с {event.started_at.strftime("%d.%m.%Y")}' \
+                f' по {event.finished_at.strftime("%d.%m.%Y")}.'
     text += f'\n\n{event_text}'
 
     answer_to_user(
@@ -189,7 +189,7 @@ def ask(update, context):
     if speech:
         speaker = speech.speaker
         text = f'Задайте свой вопрос.\nТекущий спикер - <b>{speaker.fullname}</b>'
-        context.user_data['speaker_id'] = speaker.id
+        context.user_data['speaker_id'] = speaker.telegram_id
     else:
         text = f'Дождитесь начала выступления'
     message = answer_to_user(
@@ -203,15 +203,13 @@ def ask(update, context):
 
 
 def send_question(update, context, question):
-    try:
-        user = User.objects.get(update.effective_chat.id)
-        text = f'Вопрос от слушателя {user.fullname}:\n\n{question}'
-        context.bot.send_message(
-            chat_id=context.user_data.pop('speaker_id'),
-            text=text
-        )
-    finally:
-        return show_event(update, context, context.user_data['current_event'])
+    user = User.objects.get(telegram_id=update.effective_chat.id)
+    text = f'Вопрос от слушателя {user.fullname}:\n\n{question}'
+    context.bot.send_message(
+        chat_id=context.user_data.pop('speaker_id'),
+        text=text
+    )
+    return show_event(update, context, context.user_data['current_event'])
 
 
 def meet(update, context):

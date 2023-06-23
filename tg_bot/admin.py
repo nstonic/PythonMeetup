@@ -15,10 +15,11 @@ class OrganizerInline(admin.TabularInline):
     verbose_name_plural = 'Организаторы'
 
 
-class ParticipantInline(admin.TabularInline):
-    model = User.events.through
+class SpeechInline(admin.TabularInline):
+    model = Speech
     extra = 1
-    verbose_name_plural = 'Участники'
+    fields = ['title', 'speaker', 'started_at', 'finished_at']
+    verbose_name_plural = 'Выступления'
 
 
 @admin.register(Event)
@@ -26,7 +27,7 @@ class EventAdmin(admin.ModelAdmin):
     list_display = ('title', 'started_at', 'get_organizer')
     readonly_fields = ['get_image_preview']
     fields = ('get_image_preview', 'image', 'title', 'description', 'started_at', 'finished_at')
-    inlines = [OrganizerInline, ParticipantInline]
+    inlines = [SpeechInline, OrganizerInline]
 
     def get_image_preview(self, obj):
         img = obj.image

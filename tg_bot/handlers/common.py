@@ -131,7 +131,7 @@ def show_event(update, context, event_id):
         [InlineKeyboardButton('Расписание выступлений', callback_data='speech_list')]
     ]
 
-    if event.started_at <= now():
+    if event.started_at and event.started_at <= now():
         keyboard.append(
             [InlineKeyboardButton('Задать вопрос', callback_data='ask'),
              InlineKeyboardButton('Познакомиться', callback_data='meet')]
@@ -147,10 +147,14 @@ def show_event(update, context, event_id):
         )
 
     text = f'<b>{event_title}</b>'
-    if event.started_at < now():
-        text += f'\n<b>Проходит прямо сейчас</b>.\nЗакончится {event.finished_at.strftime("%d.%m.%Y %H:%M")}.'
+    if not event.started_at:
+        text += '\n<b>Сроки прохождения еще не известны</b>'
+    elif event.started_at < now():
+        text += f'\n<b>Проходит прямо сейчас</b>.\n' \
+                f'Закончится {event.finished_at.strftime("%d.%m.%Y %H:%M")}.'
     else:
-        text += f'\nПроходит с {event.started_at.strftime("%d.%m.%Y %H:%M")} по {event.finished_at.strftime("%d.%m.%Y %H:%M")}.'
+        text += f'\nПроходит с {event.started_at.strftime("%d.%m.%Y %H:%M")}' \
+                f' по {event.finished_at.strftime("%d.%m.%Y %H:%M")}.'
     text += f'\n\n{event_text}'
 
     answer_to_user(
@@ -280,7 +284,6 @@ def ask_age(update, context):
         context,
         text,
         add_back_button=False,
-        edit_current_message=False,
     )
     return 'HANDLE_AGE'
 

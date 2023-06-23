@@ -1,4 +1,5 @@
 import json
+import os
 from contextlib import suppress
 from datetime import timedelta
 
@@ -52,27 +53,27 @@ def answer_to_user(
         else:
             return message
 
-    with suppress(TelegramError):
-        context.bot.delete_message(
-            chat_id=update.effective_chat.id,
-            message_id=update.effective_message.message_id
-        )
     if image:
-        with suppress(FileNotFoundError):
-            with open(f'media{image}', 'rb') as photo:
-                message = context.bot.send_photo(
-                    chat_id=update.effective_chat.id,
-                    photo=photo.read(),
-                    caption=text,
-                    reply_markup=InlineKeyboardMarkup(keyboard),
-                    parse_mode=parse_mode
-                )
+        media_root = os.path.join(settings.BASE_DIR, 'media')
+        with open(os.path.join(media_root, image.strip(r'\/')), 'rb') as photo:
+            message = context.bot.send_photo(
+                chat_id=update.effective_chat.id,
+                photo=photo.read(),
+                caption=text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode=parse_mode
+            )
     else:
         message = context.bot.send_message(
             chat_id=update.effective_chat.id,
             text=text,
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode=parse_mode
+        )
+    with suppress(TelegramError):
+        context.bot.delete_message(
+            chat_id=update.effective_chat.id,
+            message_id=update.effective_message.message_id
         )
     return message
 

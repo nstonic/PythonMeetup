@@ -354,7 +354,7 @@ def edit_event(update, context, title=None, text=None):
     ]
     text = f'<b>{event.title}</b>\n\n' \
            'Здесь вы можете изменить название и описание мероприятия. ' \
-           f'Для более подробного редактирования используйте <a href="{settings.EVENTS_URL}">админ панель</a>'
+           f'Для более подробного редактирования используйте <a href="{settings.EVENTS_URL}/{event.id}/change/">админ панель</a>'
 
     if msg_to_delete := context.user_data.get('msg_to_delete'):
         with suppress(TelegramError):

@@ -309,17 +309,6 @@ def ask_purpose(update, context):
     return 'HANDLE_PURPOSE'
 
 
-def ask_speciality(update, context):
-    text = 'Если хотите, то можете указать дополнительную информацию о себе'
-    answer_to_user(
-            update,
-            context,
-            text,
-            add_back_button=False,
-            )
-    return 'HANDLE_SPECIALITY'
-
-
 def delete_event(update, context, event_id):
     Event.objects.filter(pk=event_id).delete()
     context.bot.answer_callback_query(

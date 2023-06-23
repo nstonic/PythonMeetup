@@ -6,7 +6,6 @@ from .common import (
     ask_hobby,
     answer_to_user,
     ask_purpose,
-    ask_speciality,
     ask_stack,
     show_future_events,
     edit_event,
@@ -153,12 +152,6 @@ def handle_hobby(update, context):
 def handle_purpose(update, context):
     purpose = update.message.text
     save_member(update, context, purpose=purpose)
-    return ask_speciality(update, context)
-
-
-def handle_speciality(update, context):
-    speciality = update.message.text
-    save_member(update, context, speciality=speciality)
     answer_to_user(
         update,
         context,
@@ -198,7 +191,6 @@ def handle_users_reply(update, context):
         'HANDLE_STACK': handle_stack,
         'HANDLE_HOBBY': handle_hobby,
         'HANDLE_PURPOSE': handle_purpose,
-        'HANDLE_SPECIALITY': handle_speciality,
     }
     state_handler = state_functions.get(user_state, show_start_menu)
     next_state = state_handler(

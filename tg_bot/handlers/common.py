@@ -116,16 +116,16 @@ def show_event(update, context, event_id):
     keyboard = [
         [InlineKeyboardButton('Расписание выступлений', callback_data='speech_list')]
     ]
-    if user not in event.members.all():
+    # if user not in event.members.all():
+    #     keyboard.append(
+    #         [InlineKeyboardButton('Регистрация', callback_data='register')]
+    #     )
+    # else:
+    if event.started_at <= now():
         keyboard.append(
-            [InlineKeyboardButton('Регистрация', callback_data='register')]
+            [InlineKeyboardButton('Задать вопрос', callback_data='ask'),
+                InlineKeyboardButton('Познакомиться', callback_data='meet')]
         )
-    else:
-        if event.started_at <= now():
-            keyboard.append(
-                [InlineKeyboardButton('Задать вопрос', callback_data='ask'),
-                 InlineKeyboardButton('Познакомиться', callback_data='meet')]
-            )
 
     if user in event.organizers.all():
         keyboard.append(
@@ -169,8 +169,8 @@ def show_speech_list(update, context, event_id):
     return 'HANDLE_SPEECH_LIST_MENU'
 
 
-def register(update, context, event_id):
-    pass
+# def register(update, context, event_id):
+#     pass
 
 
 def ask(update, context):
@@ -373,6 +373,11 @@ def edit_event(update, context, title=None, text=None):
 def save_member(update, context, **attrs):
     current_user = User.objects.get(telegram_id=update.effective_chat.id)
     for attr, value in attrs.items():
+        if attr == 'meeters':
+            event_id = context.user_data['current_event']
+            event = Event.objects.get(pk=event_id)
+            event.meeters.add(current_user)
+            event.save()
         setattr(current_user, attr, value)
     current_user.save()
     return

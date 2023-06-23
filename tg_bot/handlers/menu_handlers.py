@@ -13,7 +13,7 @@ from .common import (
     show_event,
     show_speech_list,
     show_start_menu,
-    register,
+    # register,
     ask,
     meet,
     donate,
@@ -45,7 +45,7 @@ def handle_event_menu(update, context):
     actions = {
         'speech_list': partial(show_speech_list, event_id=event_id),
         'back': show_start_menu,
-        'register': partial(register, event_id=event_id),
+        # 'register': partial(register, event_id=event_id),
         'ask': ask,
         'meet': meet,
         'edit': edit_event,
@@ -151,7 +151,7 @@ def handle_hobby(update, context):
 
 def handle_purpose(update, context):
     purpose = update.message.text
-    save_member(update, context, purpose=purpose)
+    save_member(update, context, purpose=purpose, meeters=True)
     answer_to_user(
         update,
         context,

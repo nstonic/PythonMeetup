@@ -149,7 +149,7 @@ def handle_hobby(update, context):
 
 def handle_purpose(update, context):
     purpose = update.message.text
-    save_member(update, context, purpose=purpose)
+    save_member(update, context, purpose=purpose, meeters=True)
     answer_to_user(
         update,
         context,

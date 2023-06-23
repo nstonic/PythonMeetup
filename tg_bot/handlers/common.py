@@ -364,6 +364,12 @@ def edit_event(update, context, title=None, text=None):
 def save_member(update, context, **attrs):
     current_user = User.objects.get(telegram_id=update.effective_chat.id)
     for attr, value in attrs.items():
+        if attr == 'meeters':
+            event_id = context.user_data['current_event']
+            event = Event.objects.get(pk=event_id)
+            event.meeters.add(current_user)
+            event.save()
+            continue
         setattr(current_user, attr, value)
     current_user.save()
     return

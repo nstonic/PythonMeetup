@@ -45,12 +45,6 @@ class User(models.Model):
         blank=True,
         null=True,
     )
-    speciality = models.CharField(
-        max_length=250,
-        verbose_name='Дополнительная информация',
-        blank=True,
-        null=True,
-    )
     registred_at = models.DateTimeField(
         verbose_name='Дата и время регистрации',
         auto_now=True,

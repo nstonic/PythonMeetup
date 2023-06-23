@@ -3,7 +3,6 @@ from contextlib import suppress
 from datetime import timedelta
 
 from django.conf import settings
-from django.db.models import QuerySet
 from django.utils.datetime_safe import datetime
 from django.utils.timezone import now
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton, TelegramError, Update
@@ -74,9 +73,10 @@ def show_start_menu(update: Update, context):
 
     event = Event.objects.get_current_or_closest()
     if event:
+        button_text = event.title if event.started_at < now() else f'Скоро {event.title}'
         keyboard.insert(
             0,
-            [InlineKeyboardButton('Ближайшее мероприятие', callback_data=event.id)]
+            [InlineKeyboardButton(button_text, callback_data=event.id)]
         )
 
     user, created = User.objects.get_or_create(
@@ -136,10 +136,17 @@ def show_event(update, context, event_id):
             [InlineKeyboardButton('Задонатить', callback_data='donate')]
         )
 
+    text = f'<b>{event_title}</b>'
+    if event.started_at < now():
+        text += f'\n<b>Проходит прямо сейчас</b>.\nЗакончится {event.finished_at.strftime("%d.%m.%Y %H:%M")}.'
+    else:
+        text += f'\nПроходит с {event.started_at.strftime("%d.%m.%Y %H:%M")} по {event.finished_at.strftime("%d.%m.%Y %H:%M")}.'
+    text += f'\n\n{event_text}'
+
     answer_to_user(
         update,
         context,
-        text=f'<b>{event_title}</b>\n\n{event_text}',
+        text=text,
         keyboard=keyboard,
         parse_mode='HTML'
     )
@@ -147,12 +154,17 @@ def show_event(update, context, event_id):
 
 
 def show_speech_list(update, context, event_id):
-    speech_list = Speech.objects.filter(event=event_id)
+    speeches = Speech.objects.filter(event=event_id).order_by('-started_at')
+    speech_list = [
+        f'<b>{speech.started_at.strftime("%H:%M")}-{speech.finished_at.strftime("%H:%M")}</b> {speech.title}'
+        for speech in speeches
+    ]
     text = '\n'.join(speech_list) or 'Еще не заявлено ни одного докладчика'
     answer_to_user(
         update,
         context,
-        text=text
+        text=text,
+        parse_mode='HTML'
     )
     return 'HANDLE_SPEECH_LIST_MENU'
 

@@ -91,7 +91,7 @@ class EventQuerySet(QuerySet):
         return event
 
     def filter_futures(self):
-        return self.filter(started_at__gt=now())
+        return self.filter(finished_at__gt=now())
 
 
 class Event(models.Model):

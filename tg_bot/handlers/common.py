@@ -73,7 +73,7 @@ def show_start_menu(update: Update, context):
 
     event = Event.objects.get_current_or_closest()
     if event:
-        button_text = event.title if event.started_at < now() else f'Скоро {event.title}'
+        button_text = f'Сейчас проходит {event.title}' if event.started_at < now() else f'Скоро {event.title}'
         keyboard.insert(
             0,
             [InlineKeyboardButton(button_text, callback_data=event.id)]
@@ -335,15 +335,12 @@ def edit_event(update, context, title=None, text=None):
         if event_id := context.user_data.get('current_event'):
             Event.objects.filter(pk=int(event_id)).update(title=update.message.text)
         else:
-            event = Event.objects.create(
-                title=update.message.text,
-                organizers=update.message.text
-            )
+            event = Event.objects.create(title=update.message.text).organizers.set(User.objects.filter(id=1))
             event_id = event.id
             context.user_data['current_event'] = event_id
     elif text:
         event_id = context.user_data['current_event']
-        Event.objects.filter(event=event_id).update(description=update.message.text)
+        Event.objects.filter(id=event_id).update(description=update.message.text)
 
     event = Event.objects.get(pk=int(context.user_data['current_event']))
 

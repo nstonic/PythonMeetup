@@ -11,6 +11,7 @@ from .common import (
     edit_event,
     save_member,
     show_event,
+    show_meeter,
     show_speech_list,
     show_start_menu,
     ask,
@@ -133,7 +134,7 @@ def handle_activity(update, context):
     activity = update.message.text
     save_member(update, context, activity=activity)
     return ask_stack(update, context)
-    
+
 
 def handle_stack(update, context):
     stack = update.message.text
@@ -156,7 +157,17 @@ def handle_purpose(update, context):
         text='Благодарим за участие',
         add_back_button=False,
         )
-    return show_start_menu(update, context)
+    return meet(update, context)
+    
+
+def handle_meeting(update, context):
+    query = update.callback_query.data
+    if query == 'back':
+        return show_event(update, context, context.user_data['current_event'])
+    elif query == 'next':
+        return meet(update, context)
+    else:
+        return show_meeter(update, context, query)
 
 
 def handle_users_reply(update, context):
@@ -189,6 +200,7 @@ def handle_users_reply(update, context):
         'HANDLE_STACK': handle_stack,
         'HANDLE_HOBBY': handle_hobby,
         'HANDLE_PURPOSE': handle_purpose,
+        'HANDLE_MEETING': handle_meeting,
     }
     state_handler = state_functions.get(user_state, show_start_menu)
     next_state = state_handler(

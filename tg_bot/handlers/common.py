@@ -1,11 +1,17 @@
 import json
+import random
 from contextlib import suppress
 from datetime import timedelta
 
 from django.conf import settings
 from django.utils.datetime_safe import datetime
 from django.utils.timezone import now
-from telegram import InlineKeyboardMarkup, InlineKeyboardButton, TelegramError, Update
+from telegram import (
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    TelegramError,
+    Update
+)
 
 from tg_bot.models import Event, User, Speech
 
@@ -67,6 +73,7 @@ def answer_to_user(
 def show_start_menu(update: Update, context):
     user_id = update.effective_chat.id
     context.user_data['current_event'] = None
+    context.user_data['out'] = []
     keyboard = [
         [InlineKeyboardButton('Расписание мероприятий', callback_data='future_events')]
     ]
@@ -83,7 +90,6 @@ def show_start_menu(update: Update, context):
         telegram_id=user_id,
         defaults={
             'nickname': update.effective_chat.username or user_id,
-            'fullname': update.effective_chat.full_name or user_id
         }
     )
     if user.is_admin:
@@ -172,7 +178,7 @@ def ask(update, context):
         text = f'Задайте свой вопрос.\nТекущий спикер - <b>{speaker.fullname}</b>'
         context.user_data['speaker_id'] = speaker.id
     else:
-        text = f'Дождитесь начала выступления'
+        text = 'Дождитесь начала выступления'
     message = answer_to_user(
         update,
         context,
@@ -195,15 +201,62 @@ def meet(update, context):
     user_id = update.effective_chat.id
     name = update.effective_chat.username
     member, _ = User.objects.get_or_create(telegram_id=user_id, nickname=name)
-    if not member.fullname:
+    event = Event.objects.get(pk=context.user_data['current_event'])
+    members = event.meeters.exclude(telegram_id__in=context.user_data['out'])
+    out_count = len(context.user_data['out']) + 1
+    if member in members:
+        if event.meeters.count() - out_count:
+            meeter = random.choice(members.exclude(telegram_id=user_id))
+            context.user_data['out'].append(meeter.telegram_id)
+            text = f'Познакомьтесь с участником {meeter.fullname}.\nРод деятельности: {meeter.activity}\nПришел с целью: {meeter.purpose}'
+            keyboard = []
+            keyboard.append(
+                [InlineKeyboardButton('Хочу поговорить', callback_data=meeter.telegram_id),
+                 InlineKeyboardButton('Показать другого', callback_data='next')]
+            )
+            answer_to_user(
+                update,
+                context,
+                text,
+                add_back_button=False,
+                keyboard=keyboard,
+            )
+        else:
+            text = 'В настоящее время нет других желающих пообщаться.'
+            answer_to_user(
+                update,
+                context,
+                text,
+            )
+        return 'HANDLE_MEETING'
+    elif not member.fullname:
         answer_to_user(
             update,
             context,
-            text='Введите, пожалуйста, свое полное имя'
+            text='Введите, пожалуйста, свое полное имя',
+            add_back_button=False,
             )
         return 'HANDLE_FULLNAME'
     else:
         return ask_age(update, context)
+
+
+def show_meeter(update, context, meeter_id):
+    meeter = User.objects.get(telegram_id=meeter_id)
+    nickname = update.effective_chat.full_name
+    text = f'Вы можете связаться с {meeter.fullname} по ссылке https://t.me/{nickname}'
+    keyboard = []
+    keyboard.append(
+        [InlineKeyboardButton('Написать', url=f'https://t.me/{nickname}'),]
+    )
+    answer_to_user(
+            update,
+            context,
+            text,
+            keyboard=keyboard,
+            add_back_button=True,
+            )
+    return 'HANDLE_MEETING'
 
 
 def donate(update, context, event_id):
@@ -374,7 +427,7 @@ def save_member(update, context, **attrs):
     current_user.save()
     return
 
-  
+
 def extend_speech(update, context):
     json_raw = update.callback_query.data.replace('extend_', '', 1)
     extending_data = json.loads(json_raw)

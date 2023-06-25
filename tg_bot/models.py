@@ -186,11 +186,6 @@ class Speech(models.Model):
         related_name='speaker_speeches',
         on_delete=models.PROTECT,
     )
-    image = models.ImageField(
-        verbose_name='Аватар',
-        blank=True,
-        null=True,
-    )
     do_not_notify = models.BooleanField(
         verbose_name='Не предлагать продление',
         default=False

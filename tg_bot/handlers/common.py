@@ -1,29 +1,26 @@
 import json
 import random
+import os
 from contextlib import suppress
 from datetime import timedelta
 
 from django.conf import settings
 from django.utils.datetime_safe import datetime
 from django.utils.timezone import now
-from telegram import (
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
-    TelegramError,
-    Update
-)
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton, TelegramError, Update
+from telegram.ext import CallbackContext
 
 from tg_bot.models import Event, User, Speech
 
 
 def answer_to_user(
-        update,
-        context,
+        update: Update,
+        context: CallbackContext,
         text,
         keyboard: list[list[InlineKeyboardButton]] = None,
+        image=None,
         add_back_button=True,
-        parse_mode=None,
-        edit_current_message=True
+        parse_mode=None
 ):
     """
     Функция для ответа пользователю. Рекомендуется все сообщения отправлять через нее
@@ -31,19 +28,19 @@ def answer_to_user(
     :param context: Context
     :param text: Текст сообщения
     :param keyboard: Список кнопок Inline клавиатуры
+    :param image: Ссылка на фото
     :param add_back_button: Если True, то к клавиатуре автоматически добавится кнопка "Назад" с callback_data="back"
     :param parse_mode: Режим разметки текста сообщения Markdown, HTML или None
-    :param edit_current_message: Метод отправки сообщения. Если True, то новое сообщение отправляется как
-    редактирование старого. Если False, то старое удаляется и присылается новое
     """
+
     if not keyboard:
         keyboard = []
-
     if add_back_button:
         keyboard.append(
             [InlineKeyboardButton('< Назад', callback_data='back')]
         )
-    if edit_current_message:
+
+    if not image:
         try:
             message = context.bot.edit_message_text(
                 chat_id=update.effective_chat.id,
@@ -57,17 +54,28 @@ def answer_to_user(
         else:
             return message
 
+    if image:
+        with open(os.path.join(settings.BASE_DIR, image.strip(r'\/')), 'rb') as photo:
+            message = context.bot.send_photo(
+                chat_id=update.effective_chat.id,
+                photo=photo.read(),
+                caption=text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode=parse_mode
+            )
+    else:
+        message = context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode=parse_mode
+        )
     with suppress(TelegramError):
         context.bot.delete_message(
             chat_id=update.effective_chat.id,
             message_id=update.effective_message.message_id
         )
-    return context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=text,
-        reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode=parse_mode
-    )
+    return message
 
 
 def show_start_menu(update: Update, context):
@@ -97,13 +105,17 @@ def show_start_menu(update: Update, context):
             [InlineKeyboardButton('Создать мероприятие', callback_data='create_event')]
         )
 
-    text = 'Добро пожаловать в бот PythonMeetup'
+    text = '<b>Добро пожаловать в PythonMeetup</b>\n' \
+           'Я помогу вам быть в курсе конференций, посвященных теме Python разработки.\n' \
+           'А так же задать вопрос выступающему и найти полезные знакомства.'
     answer_to_user(
         update,
         context,
         text=text,
         keyboard=keyboard,
-        add_back_button=False
+        image='logo.png',
+        add_back_button=False,
+        parse_mode='HTML'
     )
 
     return 'HANDLE_MAIN_MENU'
@@ -123,7 +135,7 @@ def show_event(update, context, event_id):
         [InlineKeyboardButton('Расписание выступлений', callback_data='speech_list')]
     ]
 
-    if event.started_at <= now():
+    if event.started_at and event.started_at <= now():
         keyboard.append(
             [InlineKeyboardButton('Задать вопрос', callback_data='ask'),
              InlineKeyboardButton('Познакомиться', callback_data='meet')]
@@ -139,16 +151,21 @@ def show_event(update, context, event_id):
         )
 
     text = f'<b>{event_title}</b>'
-    if event.started_at < now():
-        text += f'\n<b>Проходит прямо сейчас</b>.\nЗакончится {event.finished_at.strftime("%d.%m.%Y %H:%M")}.'
+    if not event.started_at:
+        text += '\n<b>Сроки прохождения еще не известны</b>'
+    elif event.started_at < now():
+        text += f'\n<b>Проходит прямо сейчас</b>.\n' \
+                f'Закончится {event.finished_at.strftime("%d.%m.%Y")}.'
     else:
-        text += f'\nПроходит с {event.started_at.strftime("%d.%m.%Y %H:%M")} по {event.finished_at.strftime("%d.%m.%Y %H:%M")}.'
+        text += f'\nПроходит с {event.started_at.strftime("%d.%m.%Y")}' \
+                f' по {event.finished_at.strftime("%d.%m.%Y")}.'
     text += f'\n\n{event_text}'
 
     answer_to_user(
         update,
         context,
         text=text,
+        image=f'media/{event.image.url}' if event.image else None,
         keyboard=keyboard,
         parse_mode='HTML'
     )
@@ -156,7 +173,7 @@ def show_event(update, context, event_id):
 
 
 def show_speech_list(update, context, event_id):
-    speeches = Speech.objects.filter(event=event_id).order_by('-started_at')
+    speeches = Speech.objects.filter(event=event_id).order_by('started_at')
     speech_list = [
         f'<b>{speech.started_at.strftime("%H:%M")}-{speech.finished_at.strftime("%H:%M")}</b> {speech.title}'
         for speech in speeches
@@ -176,7 +193,7 @@ def ask(update, context):
     if speech:
         speaker = speech.speaker
         text = f'Задайте свой вопрос.\nТекущий спикер - <b>{speaker.fullname}</b>'
-        context.user_data['speaker_id'] = speaker.id
+        context.user_data['speaker_id'] = speaker.telegram_id
     else:
         text = 'Дождитесь начала выступления'
     message = answer_to_user(
@@ -190,9 +207,11 @@ def ask(update, context):
 
 
 def send_question(update, context, question):
+    user = User.objects.get(telegram_id=update.effective_chat.id)
+    text = f'Вопрос от слушателя {user.fullname}:\n\n{question}'
     context.bot.send_message(
         chat_id=context.user_data.pop('speaker_id'),
-        text=question
+        text=text
     )
     return show_event(update, context, context.user_data['current_event'])
 
@@ -310,56 +329,55 @@ def ask_for_event_text(update, context):
 def ask_age(update, context):
     text = 'Сколько Вам лет? (введите цифрами)'
     answer_to_user(
-            update,
-            context,
-            text,
-            add_back_button=False,
-            edit_current_message=False,
-            )
+        update,
+        context,
+        text,
+        add_back_button=False,
+    )
     return 'HANDLE_AGE'
 
 
 def ask_activity(update, context):
     text = 'Укажите, пожалуйста, Ваш род деятельности'
     answer_to_user(
-            update,
-            context,
-            text,
-            add_back_button=False,
-            )
+        update,
+        context,
+        text,
+        add_back_button=False,
+    )
     return 'HANDLE_ACTIVITY'
 
 
 def ask_stack(update, context):
     text = 'Опишите свои навыки, применяемый стек технологий'
     answer_to_user(
-            update,
-            context,
-            text,
-            add_back_button=False,
-            )
+        update,
+        context,
+        text,
+        add_back_button=False,
+    )
     return 'HANDLE_STACK'
 
 
 def ask_hobby(update, context):
     text = 'Есть ли у Вас хобби? Какое?'
     answer_to_user(
-            update,
-            context,
-            text,
-            add_back_button=False,
-            )
+        update,
+        context,
+        text,
+        add_back_button=False,
+    )
     return 'HANDLE_HOBBY'
 
 
 def ask_purpose(update, context):
     text = 'Опишите, пожалуйста, какие цели Вы ожидаете достичь в ходе встречи'
     answer_to_user(
-            update,
-            context,
-            text,
-            add_back_button=False,
-            )
+        update,
+        context,
+        text,
+        add_back_button=False,
+    )
     return 'HANDLE_PURPOSE'
 
 
@@ -392,10 +410,20 @@ def edit_event(update, context, title=None, text=None):
         [InlineKeyboardButton('Изменить описание', callback_data='text')],
         [InlineKeyboardButton('Удалить мероприятие', callback_data='delete')]
     ]
-    text = f'<b>{event.title}</b>\n\n' \
-           'Здесь вы можете изменить название и описание мероприятия. ' \
-           f'Для более подробного редактирования используйте ' \
-           f'<a href="{settings.EVENTS_URL.rstrip("/")}/tg_bot/event/{event.id}/change/">админ панель</a>'
+    text = f'<b>{event.title}</b>'
+    if not event.started_at:
+        text += '\n<b>Сроки прохождения еще не известны</b>'
+    elif event.started_at < now():
+        text += f'\n<b>Проходит прямо сейчас</b>.\n' \
+                f'Закончится {event.finished_at.strftime("%d.%m.%Y")}.'
+    else:
+        text += f'\nПроходит с {event.started_at.strftime("%d.%m.%Y")}' \
+                f' по {event.finished_at.strftime("%d.%m.%Y")}.'
+    text += f'\n\n{event.description[:80]} ...'
+    text += '\n\n-----------\n' \
+            'Здесь вы можете изменить название и описание мероприятия. ' \
+            'Для более подробного редактирования используйте ' \
+            f'<a href="{settings.EVENTS_URL.rstrip("/")}/tg_bot/event/{event.id}/change/">админ панель</a>'
 
     if msg_to_delete := context.user_data.get('msg_to_delete'):
         with suppress(TelegramError):
@@ -409,7 +437,8 @@ def edit_event(update, context, title=None, text=None):
         context,
         text,
         keyboard,
-        parse_mode='HTML'
+        parse_mode='HTML',
+        image=f'media/{event.image.url}' if event.image else None
     )
     return 'HANDLE_EDIT_EVENT'
 

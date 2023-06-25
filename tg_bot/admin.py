@@ -35,5 +35,7 @@ class EventAdmin(admin.ModelAdmin):
             return 'выберите картинку'
         return format_html('<img src="{url}" style="max-height: 200px;"/>', url=img.url)
 
+    get_image_preview.short_description = 'Привью логотипа'
+
 
 admin.site.register(Speech)

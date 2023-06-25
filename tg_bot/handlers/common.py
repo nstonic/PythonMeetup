@@ -54,8 +54,7 @@ def answer_to_user(
             return message
 
     if image:
-        media_root = os.path.join(settings.BASE_DIR, 'media')
-        with open(os.path.join(media_root, image.strip(r'\/')), 'rb') as photo:
+        with open(os.path.join(settings.BASE_DIR, image.strip(r'\/')), 'rb') as photo:
             message = context.bot.send_photo(
                 chat_id=update.effective_chat.id,
                 photo=photo.read(),
@@ -105,13 +104,17 @@ def show_start_menu(update: Update, context):
             [InlineKeyboardButton('Создать мероприятие', callback_data='create_event')]
         )
 
-    text = 'Добро пожаловать в бот PythonMeetup'
+    text = '<b>Добро пожаловать в PythonMeetup</b>\n' \
+           'Я помогу вам быть в курсе конференций, посвященных теме Python разработки.\n' \
+           'А так же задать вопрос выступающему и найти полезные знакомства.'
     answer_to_user(
         update,
         context,
         text=text,
         keyboard=keyboard,
-        add_back_button=False
+        image='logo.png',
+        add_back_button=False,
+        parse_mode='HTML'
     )
 
     return 'HANDLE_MAIN_MENU'
@@ -161,7 +164,7 @@ def show_event(update, context, event_id):
         update,
         context,
         text=text,
-        image=event.image.url if event.image else None,
+        image=f'media/{event.image.url}' if event.image else None,
         keyboard=keyboard,
         parse_mode='HTML'
     )
@@ -169,7 +172,7 @@ def show_event(update, context, event_id):
 
 
 def show_speech_list(update, context, event_id):
-    speeches = Speech.objects.filter(event=event_id).order_by('-started_at')
+    speeches = Speech.objects.filter(event=event_id).order_by('started_at')
     speech_list = [
         f'<b>{speech.started_at.strftime("%H:%M")}-{speech.finished_at.strftime("%H:%M")}</b> {speech.title}'
         for speech in speeches
@@ -359,10 +362,20 @@ def edit_event(update, context, title=None, text=None):
         [InlineKeyboardButton('Изменить описание', callback_data='text')],
         [InlineKeyboardButton('Удалить мероприятие', callback_data='delete')]
     ]
-    text = f'<b>{event.title}</b>\n\n' \
-           'Здесь вы можете изменить название и описание мероприятия. ' \
-           f'Для более подробного редактирования используйте ' \
-           f'<a href="{settings.EVENTS_URL.rstrip("/")}/tg_bot/event/{event.id}/change/">админ панель</a>'
+    text = f'<b>{event.title}</b>'
+    if not event.started_at:
+        text += '\n<b>Сроки прохождения еще не известны</b>'
+    elif event.started_at < now():
+        text += f'\n<b>Проходит прямо сейчас</b>.\n' \
+                f'Закончится {event.finished_at.strftime("%d.%m.%Y")}.'
+    else:
+        text += f'\nПроходит с {event.started_at.strftime("%d.%m.%Y")}' \
+                f' по {event.finished_at.strftime("%d.%m.%Y")}.'
+    text += f'\n\n{event.description[:80]} ...'
+    text += '\n\n-----------\n' \
+            'Здесь вы можете изменить название и описание мероприятия. ' \
+            'Для более подробного редактирования используйте ' \
+            f'<a href="{settings.EVENTS_URL.rstrip("/")}/tg_bot/event/{event.id}/change/">админ панель</a>'
 
     if msg_to_delete := context.user_data.get('msg_to_delete'):
         with suppress(TelegramError):
@@ -376,7 +389,8 @@ def edit_event(update, context, title=None, text=None):
         context,
         text,
         keyboard,
-        parse_mode='HTML'
+        parse_mode='HTML',
+        image=event.image.url if event.image else None
     )
     return 'HANDLE_EDIT_EVENT'
 

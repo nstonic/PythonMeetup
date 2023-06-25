@@ -390,7 +390,7 @@ def edit_event(update, context, title=None, text=None):
         text,
         keyboard,
         parse_mode='HTML',
-        image=event.image.url if event.image else None
+        image=f'media/{event.image.url}' if event.image else None
     )
     return 'HANDLE_EDIT_EVENT'
 

@@ -48,7 +48,7 @@ def handle_event_menu(update, context):
         'ask': ask,
         'meet': meet,
         'edit': edit_event,
-        'donate': partial(donate, event_id=event_id)
+        'donate': donate
     }
     if action := actions.get(query):
         return action(update, context)

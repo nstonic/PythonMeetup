@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
-
+import os
 from pathlib import Path
 
 from environs import Env
@@ -123,4 +123,6 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 TG_TOKEN = env('TG_TOKEN')
 PAYMENT_TOKEN = env('PAYMENT_TOKEN')
-EVENTS_URL = env('EVENTS_URL', 'http://127.0.0.1:8000/admin/tg_bot/event/')
+EVENTS_URL = env('EVENTS_URL', 'http://127.0.0.1:8000/admin/')
+
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

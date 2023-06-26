@@ -1,6 +1,5 @@
 import json
 import time
-from pprint import pprint
 
 import telegram
 from django.conf import settings

@@ -210,7 +210,7 @@ def ask(update, context):
 
 def send_question(update, context, question):
     user = User.objects.get(telegram_id=update.effective_chat.id)
-    text = f'Вопрос от слушателя {user.fullname}:\n\n{question}'
+    text = f'Вопрос от слушателя https://t.me/{user.nickname}:\n\n{question}'
     context.bot.send_message(
         chat_id=context.user_data.pop('speaker_id'),
         text=text

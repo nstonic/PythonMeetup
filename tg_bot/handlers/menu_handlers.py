@@ -202,6 +202,7 @@ def handle_users_reply(update, context):
         'HANDLE_STACK': handle_stack,
         'HANDLE_HOBBY': handle_hobby,
         'HANDLE_PURPOSE': handle_purpose,
+        'DONATE': donate
         'HANDLE_MEETING': handle_meeting,
     }
     state_handler = state_functions.get(user_state, show_start_menu)

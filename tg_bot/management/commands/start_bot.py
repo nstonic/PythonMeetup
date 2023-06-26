@@ -5,10 +5,12 @@ from telegram.ext import (
     CallbackQueryHandler,
     MessageHandler,
     CommandHandler,
-    Filters
+    Filters,
+    PreCheckoutQueryHandler
 )
 
 from tg_bot.handlers.menu_handlers import handle_users_reply
+from tg_bot.handlers.common import precheckout_callback, successful_payment_callback
 
 
 class Command(BaseCommand):
@@ -20,5 +22,7 @@ class Command(BaseCommand):
         dispatcher.add_handler(CallbackQueryHandler(handle_users_reply))
         dispatcher.add_handler(MessageHandler(Filters.text, handle_users_reply))
         dispatcher.add_handler(CommandHandler('start', handle_users_reply))
+        dispatcher.add_handler(PreCheckoutQueryHandler(precheckout_callback))
+        dispatcher.add_handler(MessageHandler(Filters.successful_payment, successful_payment_callback))
         updater.start_polling()
         updater.idle()

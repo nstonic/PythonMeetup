@@ -15,6 +15,12 @@ class OrganizerInline(admin.TabularInline):
     verbose_name_plural = 'Организаторы'
 
 
+class MeetersInline(admin.TabularInline):
+    model = User.events.through
+    extra = 1
+    verbose_name_plural = 'Участники встреч'
+
+
 class SpeechInline(admin.TabularInline):
     model = Speech
     extra = 1
@@ -27,7 +33,7 @@ class EventAdmin(admin.ModelAdmin):
     list_display = ('title', 'started_at', 'get_organizer')
     readonly_fields = ['get_image_preview']
     fields = ('get_image_preview', 'image', 'title', 'description', 'started_at', 'finished_at')
-    inlines = [SpeechInline, OrganizerInline]
+    inlines = [SpeechInline, OrganizerInline, MeetersInline]
 
     def get_image_preview(self, obj):
         img = obj.image

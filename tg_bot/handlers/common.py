@@ -262,19 +262,14 @@ def meet(update, context):
 
 def show_meeter(update, context: CallbackContext, meeter_id):
     meeter = User.objects.get(telegram_id=meeter_id)
-    nickname = update.effective_chat.full_name
+    nickname = meeter.nickname
     text = f'Вы можете связаться с {meeter.fullname} по ссылке https://t.me/{nickname}'
-    keyboard = []
-    keyboard.append(
-        [InlineKeyboardButton('Написать', url=f'https://t.me/{nickname}'), ]
-    )
     answer_to_user(
-        update,
-        context,
-        text,
-        keyboard=keyboard,
-        add_back_button=True,
-    )
+            update,
+            context,
+            text,
+            add_back_button=True,
+            )
     return 'HANDLE_MEETING'
 
 

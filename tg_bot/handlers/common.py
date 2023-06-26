@@ -106,8 +106,8 @@ def show_start_menu(update: Update, context):
         )
 
     text = '<b>Добро пожаловать в PythonMeetup</b>\n' \
-           'Я помогу вам быть в курсе конференций, посвященных теме Python разработки.\n' \
-           'А так же задать вопрос выступающему и найти полезные знакомства.'
+           'Я помогу вам быть в курсе конференций, посвященных теме Python разработки. ' \
+           'А так же задать вопрос выступающему и найти полезные знакомства в ходе самого мероприятия.'
     answer_to_user(
         update,
         context,
@@ -137,7 +137,7 @@ def show_event(update, context, event_id):
 
     if event.started_at and event.started_at <= now():
         keyboard.append(
-            [InlineKeyboardButton('❔ Задать вопрос', callback_data='ask'),
+            [InlineKeyboardButton('❔ Вопрос выступающему', callback_data='ask'),
              InlineKeyboardButton('🙋 Познакомиться', callback_data='meet')]
         )
 
@@ -157,7 +157,7 @@ def show_event(update, context, event_id):
         text += f'\n<b>Проходит прямо сейчас</b>.\n' \
                 f'Закончится {event.finished_at.strftime("%d.%m.%Y")}.'
     else:
-        text += f'\nПроходит с {event.started_at.strftime("%d.%m.%Y")}' \
+        text += f'\nБудет проходить с {event.started_at.strftime("%d.%m.%Y")}' \
                 f' по {event.finished_at.strftime("%d.%m.%Y")}.'
     text += f'\n\n{event_text}'
 

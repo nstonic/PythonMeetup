@@ -419,7 +419,8 @@ def edit_event(update, context, title=None, text=None):
     else:
         text += f'\nПроходит с {event.started_at.strftime("%d.%m.%Y")}' \
                 f' по {event.finished_at.strftime("%d.%m.%Y")}.'
-    text += f'\n\n{event.description[:80]} ...'
+    if event.description:
+        text += f'\n\n{event.description[:80]} ...'
     text += '\n\n-----------\n' \
             'Здесь вы можете изменить название и описание мероприятия. ' \
             'Для более подробного редактирования используйте ' \

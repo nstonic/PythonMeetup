@@ -262,8 +262,8 @@ def meet(update, context):
         return ask_age(update, context)
 
 
-def donate(update, context):
-    chat_id = update.message.chat_id
+def donate(update:Update, context):
+    chat_id = update.effective_chat.id
     title = "Донат"
     description = "Donate using python-telegram-bot"
     payload = "Custom-Payload"

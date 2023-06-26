@@ -37,7 +37,7 @@ def answer_to_user(
         keyboard = []
     if add_back_button:
         keyboard.append(
-            [InlineKeyboardButton('< Назад', callback_data='back')]
+            [InlineKeyboardButton('🔙 Назад', callback_data='back')]
         )
 
     if not image:
@@ -83,12 +83,12 @@ def show_start_menu(update: Update, context):
     context.user_data['current_event'] = None
     context.user_data['out'] = []
     keyboard = [
-        [InlineKeyboardButton('Расписание мероприятий', callback_data='future_events')]
+        [InlineKeyboardButton('📅 Расписание мероприятий', callback_data='future_events')]
     ]
 
     event = Event.objects.get_current_or_closest()
     if event:
-        button_text = f'Сейчас проходит {event.title}' if event.started_at < now() else f'Скоро {event.title}'
+        button_text = f'🔥 Сейчас проходит {event.title}' if event.started_at < now() else f'🔜 Скоро {event.title}'
         keyboard.insert(
             0,
             [InlineKeyboardButton(button_text, callback_data=event.id)]
@@ -102,7 +102,7 @@ def show_start_menu(update: Update, context):
     )
     if user.is_admin:
         keyboard.append(
-            [InlineKeyboardButton('Создать мероприятие', callback_data='create_event')]
+            [InlineKeyboardButton('🆕 Создать мероприятие', callback_data='create_event')]
         )
 
     text = '<b>Добро пожаловать в PythonMeetup</b>\n' \
@@ -132,22 +132,22 @@ def show_event(update, context, event_id):
     user = User.objects.get(telegram_id=user_id)
 
     keyboard = [
-        [InlineKeyboardButton('Расписание выступлений', callback_data='speech_list')]
+        [InlineKeyboardButton('📋 Расписание выступлений', callback_data='speech_list')]
     ]
 
     if event.started_at and event.started_at <= now():
         keyboard.append(
-            [InlineKeyboardButton('Задать вопрос', callback_data='ask'),
-             InlineKeyboardButton('Познакомиться', callback_data='meet')]
+            [InlineKeyboardButton('❔ Задать вопрос', callback_data='ask'),
+             InlineKeyboardButton('🙋 Познакомиться', callback_data='meet')]
         )
 
     if user in event.organizers.all():
         keyboard.append(
-            [InlineKeyboardButton('Редактировать', callback_data='edit')]
+            [InlineKeyboardButton('⚙ Редактировать', callback_data='edit')]
         )
     else:
         keyboard.append(
-            [InlineKeyboardButton('Задонатить', callback_data='donate')]
+            [InlineKeyboardButton('💳 Задонатить', callback_data='donate')]
         )
 
     text = f'<b>{event_title}</b>'
@@ -254,27 +254,27 @@ def meet(update, context):
             context,
             text='Введите, пожалуйста, свое полное имя',
             add_back_button=False,
-            )
+        )
         return 'HANDLE_FULLNAME'
     else:
         return ask_age(update, context)
 
 
-def show_meeter(update, context, meeter_id):
+def show_meeter(update, context: CallbackContext, meeter_id):
     meeter = User.objects.get(telegram_id=meeter_id)
     nickname = update.effective_chat.full_name
     text = f'Вы можете связаться с {meeter.fullname} по ссылке https://t.me/{nickname}'
     keyboard = []
     keyboard.append(
-        [InlineKeyboardButton('Написать', url=f'https://t.me/{nickname}'),]
+        [InlineKeyboardButton('Написать', url=f'https://t.me/{nickname}'), ]
     )
     answer_to_user(
-            update,
-            context,
-            text,
-            keyboard=keyboard,
-            add_back_button=True,
-            )
+        update,
+        context,
+        text,
+        keyboard=keyboard,
+        add_back_button=True,
+    )
     return 'HANDLE_MEETING'
 
 
@@ -406,13 +406,13 @@ def edit_event(update, context, title=None, text=None):
     event = Event.objects.get(pk=int(context.user_data['current_event']))
 
     keyboard = [
-        [InlineKeyboardButton('Изменить название', callback_data='title')],
-        [InlineKeyboardButton('Изменить описание', callback_data='text')],
-        [InlineKeyboardButton('Удалить мероприятие', callback_data='delete')]
+        [InlineKeyboardButton('📝 Изменить название', callback_data='title')],
+        [InlineKeyboardButton('📝 Изменить описание', callback_data='text')],
+        [InlineKeyboardButton('❌ Удалить мероприятие', callback_data='delete')]
     ]
     text = f'<b>{event.title}</b>'
     if not event.started_at:
-        text += '\n<b>Сроки прохождения еще не известны</b>'
+        text += '\n<b>Сроки проведения еще не известны</b>'
     elif event.started_at < now():
         text += f'\n<b>Проходит прямо сейчас</b>.\n' \
                 f'Закончится {event.finished_at.strftime("%d.%m.%Y")}.'

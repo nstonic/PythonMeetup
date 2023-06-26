@@ -230,8 +230,8 @@ def meet(update, context):
             text = f'Познакомьтесь с участником {meeter.fullname}.\nРод деятельности: {meeter.activity}\nПришел с целью: {meeter.purpose}'
             keyboard = []
             keyboard.append(
-                [InlineKeyboardButton('Хочу поговорить', callback_data=meeter.telegram_id),
-                 InlineKeyboardButton('Показать другого', callback_data='next')]
+                [InlineKeyboardButton('👍 Хочу поговорить', callback_data=meeter.telegram_id),
+                 InlineKeyboardButton('💩 Показать другого', callback_data='next')]
             )
             answer_to_user(
                 update,
